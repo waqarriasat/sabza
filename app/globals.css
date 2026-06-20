@@ -123,6 +123,11 @@ header{position:sticky;top:0;z-index:60;box-shadow:0 1px 0 var(--line)}
 .pg-home .tile:hover{border-color:var(--green-light);box-shadow:var(--shadow)}
 .pg-home .tile .ti{width:48px;height:48px;margin:0 auto 8px;border-radius:14px;display:grid;place-items:center}
 .pg-home .tile .ti svg{width:24px;height:24px}.pg-home .tile span{font-size:12.5px;font-weight:600}
+/* Fill the category row evenly on wider screens (mobile keeps swipe-scroll). */
+@media(min-width:600px){
+  .pg-home .tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));overflow:visible}
+  .pg-home .tiles>.tile{width:auto}
+}
 .pg-home .offers{display:grid;grid-template-columns:1fr;gap:12px}
 .pg-home .offer{border-radius:18px;padding:20px 22px}
 .pg-home .offer .oi{width:42px;height:42px;border-radius:12px;background:rgba(255,255,255,.6);display:grid;place-items:center;margin-bottom:14px}
