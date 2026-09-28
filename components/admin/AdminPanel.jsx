@@ -6,6 +6,10 @@ import { ICONS } from '@/lib/icons';
 import { PLANTS } from '@/lib/plants';
 import { ADMIN_STATS, CHART, LOW_STOCK, ADMIN_ORDERS, ADMIN_PRODUCTS } from '@/lib/data';
 import PaymentsManager from './PaymentsManager';
+import LeadsManager from './LeadsManager';
+import DeliveryManager from './DeliveryManager';
+import NotifySettings from './NotifySettings';
+import Logo from '@/components/Logo';
 import AccountSettings from './AccountSettings';
 
 // Sidebar menu, grouped. `dash` is always shown; the rest can be toggled off.
@@ -14,7 +18,8 @@ const GROUPS = [
     grp: 'Overview',
     items: [
       { v: 'dash', label: 'Dashboard', icon: 'dash', fixed: true },
-      { v: 'orders', label: 'Orders', icon: 'orders', bd: 5 },
+      { v: 'leads', label: 'Leads & orders', icon: 'orders' },
+      { v: 'orders', label: 'Orders (sample)', icon: 'orders' },
       { v: 'products', label: 'Products', icon: 'leaf' },
       { v: 'cats', label: 'Categories', icon: 'grid' },
     ],
@@ -25,11 +30,13 @@ const GROUPS = [
       { v: 'customers', label: 'Customers', icon: 'customers' },
       { v: 'discounts', label: 'Discounts', icon: 'discount' },
       { v: 'payments', label: 'Payment methods', icon: 'card' },
+      { v: 'delivery', label: 'Delivery', icon: 'truck' },
+      { v: 'alerts', label: 'Order alerts', icon: 'bell' },
       { v: 'settings', label: 'Settings', icon: 'settings' },
     ],
   },
 ];
-const TITLES = { dash: 'Dashboard', orders: 'Orders', products: 'Products', cats: 'Categories', customers: 'Customers', discounts: 'Discounts', payments: 'Payment methods', settings: 'Settings' };
+const TITLES = { dash: 'Dashboard', leads: 'Leads & commission', orders: 'Orders', products: 'Products', cats: 'Categories', customers: 'Customers', discounts: 'Discounts', payments: 'Payment methods', delivery: 'Delivery', alerts: 'Order alerts', settings: 'Settings' };
 const ORD_ST = { Pending: 'b-orange', Confirmed: 'b-blue', Packed: 'b-purple', Delivered: 'b-green', Cancelled: 'b-red' };
 const PR_ST = { Active: 'b-green', 'Out of stock': 'b-red', Draft: 'b-grey' };
 const mx = Math.max(...CHART.map((c) => c.v));
@@ -39,7 +46,7 @@ const DEFAULT_VIS = {
   // dashboard widgets
   stats: true, chart: true, low: true, recent: true,
   // sidebar menu items
-  orders: true, products: true, cats: true, customers: true, discounts: true, payments: true, settings: true,
+  leads: true, orders: false, products: true, cats: true, customers: true, discounts: true, payments: true, delivery: true, alerts: true, settings: true,
 };
 const STORE_KEY = 'sabza-admin-vis';
 const SLIDERS = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h11M19 6h1M4 12h1M9 12h11M4 18h7M15 18h5" stroke-linecap="round"/><circle cx="17" cy="6" r="2"/><circle cx="7" cy="12" r="2"/><circle cx="13" cy="18" r="2"/></svg>';
@@ -130,14 +137,14 @@ export default function AdminPanel({ email: initialEmail, initialPayments, stora
     { k: 'recent', label: 'Recent orders', sub: 'Latest 5 orders' },
   ];
   const MENU_ITEMS = [
-    { k: 'orders', label: 'Orders' }, { k: 'products', label: 'Products' }, { k: 'cats', label: 'Categories' },
-    { k: 'customers', label: 'Customers' }, { k: 'discounts', label: 'Discounts' }, { k: 'payments', label: 'Payment methods' }, { k: 'settings', label: 'Settings' },
+    { k: 'leads', label: 'Leads & orders' }, { k: 'orders', label: 'Orders (sample)' }, { k: 'products', label: 'Products' }, { k: 'cats', label: 'Categories' },
+    { k: 'customers', label: 'Customers' }, { k: 'discounts', label: 'Discounts' }, { k: 'payments', label: 'Payment methods' }, { k: 'delivery', label: 'Delivery' }, { k: 'alerts', label: 'Order alerts' }, { k: 'settings', label: 'Settings' },
   ];
 
   return (
     <div className="admin">
       <aside className={`side${drawer ? ' show' : ''}`}>
-        <div className="logo q"><Raw className="m" html={ICONS.brandSoft} /> Sabza</div>
+        <div className="brandrow"><Logo light size={30} /></div>
         <nav>
           {GROUPS.map((g) => {
             const items = g.items.filter((n) => n.fixed || vis[n.v]);
@@ -174,7 +181,7 @@ export default function AdminPanel({ email: initialEmail, initialPayments, stora
         </div>
 
         <div className="content">
-          {!storage.persistent && (view === 'payments' || view === 'settings') && (
+          {!storage.persistent && (view === 'payments' || view === 'settings' || view === 'delivery' || view === 'alerts' || view === 'leads') && (
             <div className="alert">Database not connected — changes may be lost on the next Vercel redeploy. See Settings → Data storage.</div>
           )}
           {/* DASHBOARD */}
@@ -272,6 +279,9 @@ export default function AdminPanel({ email: initialEmail, initialPayments, stora
           {view === 'cats' && <Soon icon="grid">Category management — Indoor, Outdoor, Trees, Flowers, Pots, Seeds, Soil, Fertilizer, Tools. Add, rename, reorder and nest sub-categories here.</Soon>}
           {view === 'customers' && <Soon icon="customers">Customer list with order history, addresses and lifetime value.</Soon>}
           {view === 'discounts' && <Soon icon="discount">Create coupons &amp; seasonal sales (Winter Sale, Buy 3 Get 1).</Soon>}
+          {view === 'leads' && <LeadsManager notify={notify} />}
+          {view === 'delivery' && <DeliveryManager notify={notify} />}
+          {view === 'alerts' && <NotifySettings notify={notify} />}
           {view === 'payments' && <PaymentsManager initial={initialPayments} notify={notify} />}
           {view === 'settings' && <AccountSettings email={email} onEmail={setEmail} storage={storage} notify={notify} />}
         </div>

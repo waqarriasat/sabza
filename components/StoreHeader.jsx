@@ -2,6 +2,9 @@
 import Link from 'next/link';
 import Raw from './Raw';
 import { ICONS } from '@/lib/icons';
+import Logo from './Logo';
+import { BRAND } from '@/lib/brand';
+import { useCart } from '@/lib/cart';
 
 const NAV = [
   { href: '/', label: 'Home', icon: 'home' },
@@ -11,23 +14,24 @@ const NAV = [
   { href: '#', label: 'Track Order', icon: 'track' },
 ];
 
-export default function StoreHeader({ active = 'Home', cart = 0, hotline = true }) {
+export default function StoreHeader({ active = 'Home', hotline = true }) {
+  const { count } = useCart();
   return (
     <header>
       <div className="promo">
         <div className="wrap">
           <span>🌱 <b>Free plant-care card</b> with every order</span>
           <span className="sep x">•</span>
-          <span className="x"><b>Cash on Delivery</b> all over Pakistan</span>
+          <span className="x"><b>Same-day delivery</b> in Lahore</span>
           <span className="sep">•</span>
-          <span>Free delivery over <b>Rs 3,000</b></span>
+          <span><b>Courier</b> to all Pakistan for seeds &amp; pots</span>
         </div>
       </div>
 
       <div className="topnav">
         <div className="wrap">
           <div className="row">
-            <Link className="brand q" href="/"><Raw className="mark" html={ICONS.brand} /> Sabza</Link>
+            <Link className="brand" href="/"><Logo light /></Link>
             <nav className="links">
               {NAV.map((n, i) => (
                 <Link key={i} className={n.label === active ? 'on' : ''} href={n.href}>
@@ -38,7 +42,7 @@ export default function StoreHeader({ active = 'Home', cart = 0, hotline = true 
             <div className="head-ic">
               <Link className="ib" href="#" aria-label="Wishlist"><Raw html={ICONS.heart} /></Link>
               <Link className="ib" href="/checkout" aria-label="Cart">
-                <Raw html={ICONS.cart} /><span className="cc">{cart}</span>
+                <Raw html={ICONS.cart} />{count > 0 && <span className="cc">{count}</span>}
               </Link>
             </div>
           </div>
@@ -55,9 +59,9 @@ export default function StoreHeader({ active = 'Home', cart = 0, hotline = true 
             </div>
             <button className="sfilt" aria-label="Filters"><Raw html={ICONS.filter} /></button>
             {hotline && (
-              <a className="hotline" href="tel:+923000000000">
+              <a className="hotline" href="/go/call?src=header" rel="nofollow">
                 <span className="ph"><Raw html={ICONS.phone} /></span>
-                <span><small>Order on call</small><b>+92 300 0000000</b></span>
+                <span><small>Order on call</small><b>{BRAND.phone}</b></span>
               </a>
             )}
           </div>

@@ -1,45 +1,151 @@
 'use client';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Raw from '@/components/Raw';
 import PlantArt from '@/components/PlantArt';
+import Logo from '@/components/Logo';
 import { ICONS } from '@/lib/icons';
-import { START_CART, fmt } from '@/lib/data';
+import { fmt } from '@/lib/data';
+import { BRAND } from '@/lib/brand';
+import { estimate, rsRange, etaOf, courierCheck, codAllowed } from '@/lib/delivery';
+import { useCart, setQty, removeFromCart, clearCart, keyOf } from '@/lib/cart';
 
-const CITIES = ['Lahore', 'Karachi', 'Islamabad', 'Rawalpindi', 'Faisalabad', 'Multan', 'Peshawar', 'Other city'];
+const EMPTY_FORM = { name: '', phone: '', email: '', area: '', address: '', notes: '' };
 
-export default function Checkout({ payments }) {
-  const [cart, setCart] = useState(START_CART);
+export default function Checkout({ payments, delivery }) {
+  const { items, count, subtotal } = useCart();
   const [pay, setPay] = useState(payments[0]?.id || '');
   const [txn, setTxn] = useState('');
+  const [form, setForm] = useState(EMPTY_FORM);
   const [copied, setCopied] = useState('');
-  const [done, setDone] = useState(false);
+  const [err, setErr] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [done, setDone] = useState(null); // { id, total, whatsapp, method }
+  const hasPlants = items.some((it) => it.plant !== false);
+  const [dm, setDm] = useState(() => delivery.methods[0]?.id || '');
+  const [loc, setLoc] = useState(null); // { km, how, lat, lng, label } or { km, how: 'area', area }
+  const [locBusy, setLocBusy] = useState('');
+  const [locErr, setLocErr] = useState('');
+  const [city, setCity] = useState('');
 
-  const setQty = (i, d) => setCart((c) => c.map((it, j) => j === i ? { ...it, q: Math.max(1, it.q + d) } : it));
-  const remove = (i) => setCart((c) => c.filter((_, j) => j !== i));
+  const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
+  const dmethod = delivery.methods.find((m) => m.id === dm);
+  const blockReason = (m) => (m.kind === 'courier' ? (courierCheck(m, items).ok ? '' : courierCheck(m, items).reason) : !m.plants && hasPlants ? 'Not available for live plants' : '');
+  const cour = dmethod?.kind === 'courier' ? courierCheck(dmethod, items) : null;
+  const dmBlocked = dmethod && Boolean(blockReason(dmethod));
+  const est = dmethod?.kind === 'local' && loc ? estimate(dmethod, loc.km, delivery.rangePct) : null;
+  const ship = !dmethod ? null : dmethod.kind === 'pickup' ? 0 : dmethod.kind === 'courier' ? (cour?.ok ? cour.fee : null) : est ? est.low : null;
+  const total = subtotal + (ship || 0);
+  const deliveryReady = dmethod && !dmBlocked && (dmethod.kind !== 'local' || loc) && (dmethod.kind !== 'courier' || city.trim());
 
-  const sub = cart.reduce((s, c) => s + c.p * c.q, 0);
-  const ship = sub >= 3000 ? 0 : 200;
-  const total = sub + ship;
-  const count = cart.reduce((s, c) => s + c.q, 0);
+  async function quote(body, kind) {
+    setLocBusy(kind); setLocErr('');
+    try {
+      const res = await fetch('/api/delivery-quote', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+      const j = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(j.error || 'Could not work out the distance.');
+      setLoc(j);
+    } catch (e) {
+      setLocErr(e.message);
+    } finally {
+      setLocBusy('');
+    }
+  }
+  function useMyLocation() {
+    if (!navigator.geolocation) return setLocErr('Your browser cannot share location. Enter your address or pick your area.');
+    setLocBusy('gps'); setLocErr('');
+    navigator.geolocation.getCurrentPosition(
+      (p) => quote({ lat: p.coords.latitude, lng: p.coords.longitude }, 'gps'),
+      () => { setLocBusy(''); setLocErr('Location permission was denied. Enter your address or pick your area instead.'); },
+      { enableHighAccuracy: true, timeout: 15000 },
+    );
+  }
+  function fromAddress() {
+    if (!form.address.trim() && !form.area.trim()) return setLocErr('Type your area and full address above first.');
+    quote({ address: `${form.address}, ${form.area}` }, 'addr');
+  }
   const method = payments.find((p) => p.id === pay);
-  const payLabel = method ? method.name : '—';
   const needsTxn = method && method.accounts.length > 0 && method.kind !== 'cod' && method.kind !== 'card';
+  const codOk = !dmethod || codAllowed(dmethod);
+  const payNames = payments.map((p) => p.name).join(', ').replace(/, ([^,]*)$/, ' or $1') || '—';
+  const payOk = (p) => p.kind !== 'cod' || codOk;
+  // inDrive orders must be paid in advance: move off COD when such a delivery method is chosen
+  useEffect(() => {
+    if (method && !payOk(method)) { const alt = payments.find(payOk); if (alt) setPay(alt.id); }
+  }, [dm]); // eslint-disable-line react-hooks/exhaustive-deps
   const copy = (text) => {
     navigator.clipboard?.writeText(text.replace(/\s+/g, '')).then(() => { setCopied(text); setTimeout(() => setCopied(''), 1500); });
   };
 
+  async function placeOrder() {
+    setErr('');
+    if (!deliveryReady) {
+      setErr(dmBlocked ? `${blockReason(dmethod)}.` : dmethod?.kind === 'courier' ? 'Please enter your city for courier delivery.' : 'Please set your delivery location so we can calculate the delivery charge.');
+      document.getElementById('delivery')?.scrollIntoView({ behavior: 'smooth' });
+      return;
+    }
+    if (method && !payOk(method)) { setErr(`Cash on Delivery is only available with courier. Please choose JazzCash, Easypaisa or bank transfer.`); return; }
+    if (!form.name.trim() || !form.phone.trim() || !form.area.trim() || !form.address.trim()) {
+      setErr('Please fill in your name, phone number, area and full address.');
+      document.getElementById('contact')?.scrollIntoView({ behavior: 'smooth' });
+      return;
+    }
+    setBusy(true);
+    try {
+      const res = await fetch('/api/leads', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          customer: form, items, payment: { id: pay, txn },
+          delivery: { method: dm, lat: loc?.lat, lng: loc?.lng, area: loc?.how === 'area' ? loc.area : '', city },
+        }),
+      });
+      const j = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(j.error || 'Could not place your order.');
+      setDone({ ...j, method: method?.name });
+      clearCart();
+      window.scrollTo({ top: 0 });
+    } catch (e) {
+      setErr(e.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const Promo = () => (
+    <div className="cpromo"><b>Same-day delivery</b> in {BRAND.city} via inDrive · <b>Courier</b> 2–3 days{payments.some((p) => p.kind === 'cod') ? ' with Cash on Delivery' : ''} · Pay by {payNames}</div>
+  );
+
   if (done) {
     return (
       <div className="pg-checkout">
-        <div className="cpromo"><b>Cash on Delivery</b> available all over Pakistan · Free delivery over Rs 3,000</div>
+        <Promo />
         <SlimHeader />
         <div className="wrap"><div className="done">
           <div className="ck"><Raw html={ICONS.check} /></div>
-          <h2 className="q">Order placed! 🌱</h2>
-          <p>Thank you. Your order <span className="oid">#SBZ-48213</span> is confirmed.<br />We'll WhatsApp you the tracking details shortly.</p>
-          <p style={{ marginTop: 6 }}>Paid by: <b style={{ color: 'var(--ink)' }}>{payLabel}</b></p>
+          <h2 className="q">Order received! 🌱</h2>
+          <p>Thank you. Your order number is <span className="oid">{done.id}</span>.<br />
+            Products {fmt(done.subtotal)} + delivery {done.shipping?.kind === 'pickup' ? '(pickup)' : fmt(done.delivery)} = <b>{fmt(done.total)}</b> · {done.method}
+            {done.shipping?.eta && <><br />{done.shipping.name}: <b>{done.shipping.eta}</b></>}</p>
+          <p style={{ marginTop: 10 }}>Tap below to send your order to us on WhatsApp so we can confirm it quickly.</p>
+          <a className="wa-send" href={done.whatsapp} target="_blank" rel="noopener"><Raw html={ICONS.whatsapp} />Send order on WhatsApp</a>
+          <p className="small">Or call us on <a href={`tel:${BRAND.phoneIntl}`}>{BRAND.phone}</a> and quote {done.id}.</p>
           <Link href="/">Back to shop</Link>
+        </div></div>
+      </div>
+    );
+  }
+
+  if (items.length === 0) {
+    return (
+      <div className="pg-checkout">
+        <Promo />
+        <SlimHeader />
+        <div className="wrap"><div className="done">
+          <div className="ck"><Raw html={ICONS.cart} /></div>
+          <h2 className="q">Your cart is empty</h2>
+          <p>Browse our plants and tap “+” to add them to your cart.</p>
+          <Link href="/shop">Shop plants</Link>
         </div></div>
       </div>
     );
@@ -47,7 +153,7 @@ export default function Checkout({ payments }) {
 
   return (
     <div className="pg-checkout">
-      <div className="cpromo"><b>Cash on Delivery</b> available all over Pakistan · Free delivery over Rs 3,000</div>
+      <Promo />
       <SlimHeader />
 
       <div className="wrap">
@@ -63,54 +169,114 @@ export default function Checkout({ payments }) {
             {/* cart */}
             <div className="blk">
               <h2><span className="b">🛒</span>Your cart ({count})</h2>
-              {cart.map((c, i) => (
-                <div className="citem" key={i}>
-                  <div className="im"><PlantArt name={c.a} /></div>
-                  <div style={{ flex: 1 }}>
-                    <div className="nm">{c.n}</div>
-                    <div className="va">{c.v}</div>
-                    <div className="bot">
-                      <div className="qty">
-                        <button onClick={() => setQty(i, -1)}>−</button><span>{c.q}</span><button onClick={() => setQty(i, 1)}>+</button>
+              {items.map((c) => {
+                const k = keyOf(c);
+                return (
+                  <div className="citem" key={k}>
+                    <div className="im"><PlantArt name={c.a} /></div>
+                    <div style={{ flex: 1 }}>
+                      <div className="nm">{c.n}</div>
+                      {c.v && <div className="va">{c.v}</div>}
+                      <div className="bot">
+                        <div className="qty">
+                          <button onClick={() => setQty(k, c.q - 1)} aria-label="Less">−</button><span>{c.q}</span><button onClick={() => setQty(k, c.q + 1)} aria-label="More">+</button>
+                        </div>
+                        <button className="rm" onClick={() => removeFromCart(k)}><Raw html={ICONS.trash} />Remove</button>
                       </div>
-                      <button className="rm" onClick={() => remove(i)}><Raw html={ICONS.trash} />Remove</button>
                     </div>
+                    <div className="pr"><div className="now">{fmt(c.p * c.q)}</div><div className="ea">{fmt(c.p)} each</div></div>
                   </div>
-                  <div className="pr"><div className="now">{fmt(c.p * c.q)}</div><div className="ea">{fmt(c.p)} each</div></div>
-                </div>
-              ))}
+                );
+              })}
             </div>
 
             {/* contact */}
-            <div className="blk" style={{ marginTop: 18 }}>
+            <div className="blk" id="contact" style={{ marginTop: 18 }}>
               <h2><span className="b">1</span>Contact &amp; delivery</h2>
               <div className="frow two">
-                <div className="field"><label>Full name</label><input placeholder="e.g. Ahmed Khan" /></div>
-                <div className="field"><label>Phone number</label><input placeholder="03xx xxxxxxx" /></div>
+                <div className="field"><label>Full name *</label><input value={form.name} onChange={set('name')} autoComplete="name" placeholder="e.g. Ahmed Khan" /></div>
+                <div className="field"><label>Mobile number *</label><input value={form.phone} onChange={set('phone')} autoComplete="tel" inputMode="tel" placeholder="03xx xxxxxxx" /></div>
               </div>
-              <div className="frow"><div className="field"><label>Email (optional — for order updates)</label><input placeholder="you@email.com" /></div></div>
+              <div className="frow"><div className="field"><label>Email (optional)</label><input value={form.email} onChange={set('email')} autoComplete="email" placeholder="you@email.com" /></div></div>
               <div className="frow two">
-                <div className="field"><label>City</label><select>{CITIES.map((c) => <option key={c}>{c}</option>)}</select></div>
-                <div className="field"><label>Area / Town</label><input placeholder="e.g. DHA Phase 5" /></div>
+                {dmethod?.kind === 'courier'
+                  ? <div className="field"><label>City *</label><input value={city} onChange={(e) => setCity(e.target.value)} placeholder="e.g. Karachi" /><small className="hint">Courier delivers all over Pakistan.</small></div>
+                  : <div className="field"><label>City</label><input value={BRAND.city} readOnly /><small className="hint">Live plants are delivered in {BRAND.city} only.</small></div>}
+                <div className="field"><label>Area / Town *</label><input value={form.area} onChange={set('area')} placeholder="e.g. DHA Phase 5" /></div>
               </div>
-              <div className="frow"><div className="field"><label>Full address</label><textarea placeholder="House #, street, landmark…" /></div></div>
-              <div className="frow"><div className="field"><label>Delivery notes (optional)</label><input placeholder="Gate code, best time to deliver…" /></div></div>
+              <div className="frow"><div className="field"><label>Full address *</label><textarea value={form.address} onChange={set('address')} autoComplete="street-address" placeholder="House #, street, landmark…" /></div></div>
+              <div className="frow"><div className="field"><label>Delivery notes (optional)</label><input value={form.notes} onChange={set('notes')} placeholder="Best time to deliver, gate code…" /></div></div>
+            </div>
+
+            {/* delivery */}
+            <div className="blk" id="delivery" style={{ marginTop: 18 }}>
+              <h2><span className="b">2</span>Delivery</h2>
+              <p className="dnote">Delivery is charged <b>separately</b> from the product price, by road distance from our nursery.</p>
+              <div className="pay">
+                {delivery.methods.map((m) => {
+                  const blocked = blockReason(m);
+                  const cc = m.kind === 'courier' ? courierCheck(m, items) : null;
+                  const e = m.kind === 'local' && loc ? estimate(m, loc.km, delivery.rangePct) : null;
+                  return (
+                    <label key={m.id} className={`pm${dm === m.id ? ' on' : ''}${blocked ? ' dis' : ''}`} onClick={() => !blocked && setDm(m.id)}>
+                      <span className="radio"></span>
+                      <span className="ic" style={{ background: m.kind === 'courier' ? '#1F4E8C' : m.kind === 'pickup' ? '#C8693A' : '#1E4D2B' }}><Raw html={ICONS[m.kind === 'pickup' ? 'pin' : 'truck']} /></span>
+                      <span><b>{m.name}</b><small>{blocked ? `Not available — ${blocked}` : m.desc}</small>
+                        {!blocked && etaOf(m) && <span className={`eta ${m.kind}`}>{m.kind === 'local' ? '⚡ ' : '🕒 '}{etaOf(m)}</span>}</span>
+                      <span className="rec">{m.kind === 'pickup' ? 'No charge' : m.kind === 'courier' ? (cc.ok ? `${fmt(cc.fee)} · ${cc.kg} kg` : `${fmt(m.flat)} first kg`) : e ? rsRange(e) : `Rs ${m.perKm}/km · min ${fmt(m.min)}`}</span>
+                    </label>
+                  );
+                })}
+              </div>
+
+              {dmethod?.kind === 'local' && (
+                <div className="locbox">
+                  <b>Where should we deliver?</b>
+                  <div className="locbtns">
+                    <button type="button" className="lb pri" onClick={useMyLocation} disabled={!!locBusy}><Raw html={ICONS.pin} />{locBusy === 'gps' ? 'Finding you…' : 'Use my current location'}</button>
+                    <button type="button" className="lb" onClick={fromAddress} disabled={!!locBusy}>{locBusy === 'addr' ? 'Looking up…' : 'Calculate from my address'}</button>
+                  </div>
+                  <div className="field"><label>Or choose your area</label>
+                    <select value={loc?.how === 'area' ? loc.area : ''} onChange={(e) => {
+                      const a = delivery.areas.find((x) => x.name === e.target.value);
+                      setLocErr(''); setLoc(a ? { km: a.km, how: 'area', area: a.name } : null);
+                    }}>
+                      <option value="">— Select area —</option>
+                      {delivery.areas.map((a) => <option key={a.name} value={a.name}>{a.name}</option>)}
+                    </select>
+                  </div>
+                  {locErr && <p className="lerr">{locErr}</p>}
+                  {loc && (
+                    <p className="lok"><Raw html={ICONS.check} />
+                      {loc.how === 'area' ? `${loc.area}: about ${loc.km} km from the nursery` : `${loc.km} km from the nursery${loc.how === 'approx' ? ' (approx.)' : ' by road'}`}
+                      {est && <> · {dmethod.name}: <b>{rsRange(est)}</b> <small>({loc.km} km × Rs {dmethod.perKm}{est.low === dmethod.min ? `, minimum ${fmt(dmethod.min)}` : ''})</small></>}
+                    </p>
+                  )}
+                </div>
+              )}
+              {dmethod?.kind === 'pickup' && (
+                <div className="locbox"><b>Pick up from:</b> {BRAND.address}<br /><small>{BRAND.hours} · <a href={BRAND.mapsUrl} target="_blank" rel="noopener">Directions ↗</a> · We'll call you when your order is ready.</small></div>
+              )}
+              {dmethod?.kind === 'courier' && (
+                <div className="locbox"><small>Courier anywhere in Pakistan: {fmt(dmethod.flat)} for the first kg + {fmt(dmethod.perKg)} per extra kg{cour?.ok ? ` — your order is ${cour.kg} kg = ${fmt(cour.fee)}` : ''}. Delivered in {etaOf(dmethod)}. Small plants are packed with their soil secured. Enter your city in the delivery details above.</small></div>
+              )}
             </div>
 
             {/* payment */}
             <div className="blk" style={{ marginTop: 18 }}>
-              <h2><span className="b">2</span>Payment method</h2>
-              {payments.length === 0 && <p className="pay-none">Online payment is not available right now. Please contact us on WhatsApp to place your order.</p>}
+              <h2><span className="b">3</span>Payment method</h2>
+              {!codOk && <p className="paynote">🔒 <b>{dmethod.name}</b> orders are <b>paid in advance</b> (products + delivery) by {payments.filter((p) => p.kind !== 'cod').map((p) => p.name).join(' or ')}. Cash on Delivery is available with courier.</p>}
+              {payments.length === 0 && <p className="pay-none">Online ordering is not available right now. Please contact us on WhatsApp to place your order.</p>}
               <div className="pay">
                 {payments.map((p) => (
                   <div key={p.id}>
-                    <label className={`pm${pay === p.id ? ' on' : ''}`} onClick={() => setPay(p.id)}>
+                    <label className={`pm${pay === p.id ? ' on' : ''}${payOk(p) ? '' : ' dis'}`} onClick={() => payOk(p) && setPay(p.id)}>
                       <span className="radio"></span>
                       <span className="ic" style={{ background: p.color }}>{p.kind === 'cod' ? <Raw html={ICONS.truck} /> : p.kind === 'card' ? <Raw html={ICONS.card} /> : p.logo}</span>
-                      <span><b>{p.name}</b><small>{p.desc}</small></span>
-                      {p.badge && <span className="rec">{p.badge}</span>}
+                      <span><b>{p.name}</b><small>{payOk(p) ? p.desc : `Not available with ${dmethod.name} — only with courier`}</small></span>
+                      {p.badge && payOk(p) && <span className="rec">{p.badge}</span>}
                     </label>
-                    {pay === p.id && (p.instructions || p.accounts.length > 0) && (
+                    {pay === p.id && payOk(p) && (p.instructions || p.accounts.length > 0) && (
                       <div className="pay-det">
                         {p.instructions && <p>{p.instructions}</p>}
                         {p.accounts.map((a) => (
@@ -124,7 +290,7 @@ export default function Checkout({ payments }) {
                           </div>
                         ))}
                         {needsTxn && (
-                          <div className="field"><label>Transaction ID / reference</label>
+                          <div className="field"><label>Transaction ID / reference (optional)</label>
                             <input value={txn} onChange={(e) => setTxn(e.target.value)} placeholder="Paste it here after you pay" /></div>
                         )}
                         {p.kind !== 'cod' && p.accounts.length === 0 && p.kind !== 'card' && (
@@ -141,18 +307,20 @@ export default function Checkout({ payments }) {
           {/* summary */}
           <div className="blk sum">
             <h2><span className="b">📋</span>Order summary</h2>
-            <div className="line"><span>Subtotal</span><span>{fmt(sub)}</span></div>
-            <div className="line"><span>Delivery</span><span>{ship === 0 ? <span className="free">FREE</span> : fmt(ship)}</span></div>
-            {method?.kind === 'cod' && <div className="line"><span>COD handling</span><span>Rs. 0</span></div>}
-            <div className="promo-in"><input placeholder="Promo code" /><button>Apply</button></div>
+            <div className="line"><span>Products</span><span>{fmt(subtotal)}</span></div>
+            <div className="line"><span>Delivery{dmethod ? ` · ${dmethod.name}` : ''}</span>
+              <span>{ship === null ? <small className="muted">set location</small> : dmethod?.kind === 'pickup' ? 'No charge' : est && est.high > est.low ? rsRange(est) : fmt(ship)}</span></div>
             <div className="line tot"><span>Total</span><span>{fmt(total)}</span></div>
-            <div className="ship-note">{ship === 0 ? '🎉 You\'ve unlocked free delivery!' : `Add ${fmt(3000 - sub)} more for free delivery.`}</div>
-            <button className="place" disabled={!method} onClick={() => { setDone(true); window.scrollTo({ top: 0 }); }}>
-              <Raw html={ICONS.check} />Place order
+            <div className="ship-note">{dmethod?.kind === 'local'
+              ? (loc ? `Delivery ${loc.km} km × Rs ${dmethod.perKm}/km (min ${fmt(dmethod.min)}). Pay the delivery charge with your order.` : 'Set your delivery location to see the delivery charge.')
+              : dmethod?.kind === 'courier' ? `Courier charged by weight${cour?.ok ? ` (${cour.kg} kg)` : ''}.` : 'Collect from the nursery — no delivery charge.'}</div>
+            {err && <div className="err" role="alert">{err}</div>}
+            <button className="place" disabled={!method || busy || !items.length} onClick={placeOrder}>
+              <Raw html={ICONS.check} />{busy ? 'Placing order…' : 'Place order'}
             </button>
             <div className="trust">
-              <div><Raw html={ICONS.shield} />7-day healthy-plant promise</div>
-              <div><Raw html={ICONS.truck} />Carefully packed, delivered in 2–4 days</div>
+              <div><Raw html={ICONS.star} />Rated {BRAND.googleRating}★ on Google</div>
+              <div><Raw html={ICONS.truck} />{dmethod ? `${dmethod.name}: ${etaOf(dmethod)}` : 'Same-day delivery in Lahore'}</div>
               <div><Raw html={ICONS.check} />No account needed to order</div>
             </div>
           </div>
@@ -165,7 +333,7 @@ export default function Checkout({ payments }) {
 function SlimHeader() {
   return (
     <div className="top"><div className="wrap"><div className="row">
-      <Link className="brand q" href="/"><Raw className="mark" html={ICONS.brand} /> Sabza</Link>
+      <Link className="brand" href="/"><Logo light /></Link>
       <span className="secure"><Raw html={ICONS.shieldCheck} />Secure checkout</span>
     </div></div></div>
   );

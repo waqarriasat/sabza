@@ -1,4 +1,4 @@
-# Sabza — Plant Nursery Store (Next.js)
+# Ahsan Ijaz Nursery Farm — online store (Next.js)
 
 A complete storefront + admin panel for a sell-only plant nursery, built with
 **Next.js 14 (App Router) in plain JavaScript / JSX — no TypeScript.**
@@ -104,3 +104,57 @@ new key is generated on every build, which just means everyone is signed out aft
 
 **Forgot the admin password?** Delete the `sabza:admin` key in Redis (or the `admin`
 entry in `data/store.json`) — the login resets to the original credentials.
+
+## Business details
+
+Name, phone, WhatsApp, address, delivery fee and the order reference prefix all live in
+**`lib/brand.js`** — change them there and the whole site updates.
+
+## Leads & commission tracking
+
+Every enquiry from the website is saved as a lead with a reference number (`AIN-1001`, …):
+
+- **Orders** placed at checkout (customer details, items, total, payment method). The customer
+  is then offered a pre-filled WhatsApp message containing the reference.
+- **WhatsApp clicks** and **call clicks** — all contact buttons go through `/go/whatsapp` and
+  `/go/call`, which record the lead and then open WhatsApp / the dialler. The WhatsApp message
+  includes the reference so it can be matched to the lead.
+- **Where the visitor came from** (Google, Instagram, Facebook, ads, `?ref=` / `utm_*` links) is
+  remembered for 90 days and stored with each lead.
+
+**Admin → Leads & orders** shows them by month. Set a lead to *confirmed*/*delivered* when it
+turns into a sale (enter the sale amount for WhatsApp/call leads). Leads can't be deleted and
+every change is kept in the lead's history. Set the agreed commission % there; the page shows
+the month's sales value and commission, and **Export CSV** produces the monthly statement.
+
+## Delivery
+
+Customers pay the **product price** and a **separate delivery charge**:
+
+- **Bike / rickshaw / loader (Lahore):** road distance from the nursery × rate per km, with a
+  minimum fare (defaults: bike Rs 100/km min Rs 700, rickshaw Rs 140/km min Rs 1,000, loader
+  Rs 250/km min Rs 2,500). The distance comes from the customer's phone location or address
+  (OpenStreetMap by default; set `GOOGLE_MAPS_API_KEY` to use Google Maps instead), or from the
+  area list as a fallback. The server recalculates the charge — the browser can't change it.
+- **inDrive (bike / rickshaw / loader)** — same day, within a couple of hours, Lahore only.
+- **Courier** — all Pakistan, 2–3 days, charged **by weight** (default Rs 300 first kg + Rs 150 per
+  extra kg, max 10 kg). Only for **small plants** and non-plant items (seeds, pots, soil,
+  fertilizer). Each product has a weight and a courier yes/no flag (`w`, `courier`); if missing
+  they're estimated (plants over ~Rs 1,000, palms and trees are not sent by courier).
+- **Pickup** from the nursery (no charge).
+- **Admin → Delivery**: edit methods and rates, set the nursery's exact location (paste a Google
+  Maps link), edit the area list. Enter the **actual rider fare** on each order and the page shows
+  whether the estimates are too high or too low.
+
+## Order alerts
+
+**Admin → Order alerts** — the nursery can switch on any of:
+
+| Channel | Cost | Vercel environment variables |
+|---|---|---|
+| Telegram | Free | `TELEGRAM_BOT_TOKEN` |
+| Email (Resend) | Free tier | `RESEND_API_KEY`, optional `ALERT_FROM_EMAIL` |
+| WhatsApp (Meta Cloud API) | ~Rs 3–4 per alert | `WHATSAPP_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID` + approved template `new_order_alert` |
+
+Step-by-step setup for each is shown on that page, with a **Send test** button. Alert results are
+saved in each order's history.
