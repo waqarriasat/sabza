@@ -615,3 +615,4 @@ header{position:sticky;top:0;z-index:60;box-shadow:0 1px 0 var(--line)}
 .pg-checkout .pm .eta.courier,.pg-checkout .pm .eta.pickup{background:#E8EEF6;color:#2C4E7A}
 .admin .dtable input.sub.eta{color:#A4501F;font-weight:600}
 .admin .cwrap{display:flex;flex-direction:column;gap:5px}
+.pg-checkout .paynote{background:#FFF4DE;border:1px solid #F5D9A8;color:#7A500C;border-radius:10px;padding:10px 12px;font-size:12.5px;margin:-4px 0 12px;line-height:1.5}

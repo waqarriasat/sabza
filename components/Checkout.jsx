@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Raw from '@/components/Raw';
 import PlantArt from '@/components/PlantArt';
@@ -7,7 +7,7 @@ import Logo from '@/components/Logo';
 import { ICONS } from '@/lib/icons';
 import { fmt } from '@/lib/data';
 import { BRAND } from '@/lib/brand';
-import { estimate, rsRange, etaOf, courierCheck } from '@/lib/delivery';
+import { estimate, rsRange, etaOf, courierCheck, codAllowed } from '@/lib/delivery';
 import { useCart, setQty, removeFromCart, clearCart, keyOf } from '@/lib/cart';
 
 const EMPTY_FORM = { name: '', phone: '', email: '', area: '', address: '', notes: '' };
@@ -66,6 +66,12 @@ export default function Checkout({ payments, delivery }) {
   }
   const method = payments.find((p) => p.id === pay);
   const needsTxn = method && method.accounts.length > 0 && method.kind !== 'cod' && method.kind !== 'card';
+  const codOk = !dmethod || codAllowed(dmethod);
+  const payOk = (p) => p.kind !== 'cod' || codOk;
+  // inDrive orders must be paid in advance: move off COD when such a delivery method is chosen
+  useEffect(() => {
+    if (method && !payOk(method)) { const alt = payments.find(payOk); if (alt) setPay(alt.id); }
+  }, [dm]); // eslint-disable-line react-hooks/exhaustive-deps
   const copy = (text) => {
     navigator.clipboard?.writeText(text.replace(/\s+/g, '')).then(() => { setCopied(text); setTimeout(() => setCopied(''), 1500); });
   };
@@ -77,6 +83,7 @@ export default function Checkout({ payments, delivery }) {
       document.getElementById('delivery')?.scrollIntoView({ behavior: 'smooth' });
       return;
     }
+    if (method && !payOk(method)) { setErr(`Cash on Delivery is only available with courier. Please choose JazzCash, Easypaisa or bank transfer.`); return; }
     if (!form.name.trim() || !form.phone.trim() || !form.area.trim() || !form.address.trim()) {
       setErr('Please fill in your name, phone number, area and full address.');
       document.getElementById('contact')?.scrollIntoView({ behavior: 'smooth' });
@@ -105,7 +112,7 @@ export default function Checkout({ payments, delivery }) {
   }
 
   const Promo = () => (
-    <div className="cpromo"><b>Same-day delivery</b> in {BRAND.city} via inDrive · <b>Courier</b> 2–3 days · Cash on Delivery</div>
+    <div className="cpromo"><b>Same-day delivery</b> in {BRAND.city} via inDrive · <b>Courier</b> 2–3 days with Cash on Delivery</div>
   );
 
   if (done) {
@@ -257,17 +264,18 @@ export default function Checkout({ payments, delivery }) {
             {/* payment */}
             <div className="blk" style={{ marginTop: 18 }}>
               <h2><span className="b">3</span>Payment method</h2>
+              {!codOk && <p className="paynote">🔒 <b>{dmethod.name}</b> orders are <b>paid in advance</b> (products + delivery) by JazzCash, Easypaisa or bank transfer. Cash on Delivery is available with courier.</p>}
               {payments.length === 0 && <p className="pay-none">Online ordering is not available right now. Please contact us on WhatsApp to place your order.</p>}
               <div className="pay">
                 {payments.map((p) => (
                   <div key={p.id}>
-                    <label className={`pm${pay === p.id ? ' on' : ''}`} onClick={() => setPay(p.id)}>
+                    <label className={`pm${pay === p.id ? ' on' : ''}${payOk(p) ? '' : ' dis'}`} onClick={() => payOk(p) && setPay(p.id)}>
                       <span className="radio"></span>
                       <span className="ic" style={{ background: p.color }}>{p.kind === 'cod' ? <Raw html={ICONS.truck} /> : p.kind === 'card' ? <Raw html={ICONS.card} /> : p.logo}</span>
-                      <span><b>{p.name}</b><small>{p.desc}</small></span>
-                      {p.badge && <span className="rec">{p.badge}</span>}
+                      <span><b>{p.name}</b><small>{payOk(p) ? p.desc : `Not available with ${dmethod.name} — only with courier`}</small></span>
+                      {p.badge && payOk(p) && <span className="rec">{p.badge}</span>}
                     </label>
-                    {pay === p.id && (p.instructions || p.accounts.length > 0) && (
+                    {pay === p.id && payOk(p) && (p.instructions || p.accounts.length > 0) && (
                       <div className="pay-det">
                         {p.instructions && <p>{p.instructions}</p>}
                         {p.accounts.map((a) => (

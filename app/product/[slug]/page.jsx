@@ -125,7 +125,7 @@ export default function ProductPage() {
             <div className="delv">
               <div className="dl"><Raw html={ICONS.truck} /><div><b>Same-day delivery in {BRAND.city}</b> <span>via inDrive, within a couple of hours. Charged by distance, carefully packed.
                 {sizeObj.courier ? ' This size can also go by courier anywhere in Pakistan (2–3 days).' : ' This size is too large for courier — inDrive delivery or pickup only.'}</span></div></div>
-              <div className="dl"><Raw html={ICONS.card} /><div><b>Cash on Delivery available.</b> <span>Plus JazzCash, Easypaisa &amp; bank transfer.</span></div></div>
+              <div className="dl"><Raw html={ICONS.card} /><div><b>Cash on Delivery with courier.</b> <span>Same-day inDrive orders: pay in advance by JazzCash, Easypaisa &amp; bank transfer.</span></div></div>
               <div className="dl"><Raw html={ICONS.shield} /><div><b>7-day healthy-plant promise.</b> <span>Arrives unhappy? We'll replace or refund.</span></div></div>
             </div>
           </div>

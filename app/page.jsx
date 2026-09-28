@@ -26,13 +26,13 @@ const STATS = [
 const PILLS = [
   { icon: 'shield', t: '7-day healthy-plant promise' },
   { icon: 'truck', t: 'Carefully packed delivery' },
-  { icon: 'card', t: 'Cash on Delivery' },
+  { icon: 'card', t: 'Cash on Delivery with courier' },
   { icon: 'check', t: 'Grown at our own nursery' },
 ];
 const FAQS = [
   ['Do you deliver live plants safely?', `Yes — every plant is packed in a secure box with the soil wrapped so it stays in place. In Lahore we deliver ${DELIVERY.fast}, or ${DELIVERY.courier}. We include a care card so your plant settles in happily.`],
   ['What if my plant arrives damaged?', "Our 7-day healthy-plant promise has you covered. Just send a photo on WhatsApp within 7 days and we'll arrange a replacement or refund."],
-  ['Can I pay cash on delivery?', 'Absolutely. Cash on Delivery is available across Lahore, alongside JazzCash, Easypaisa and bank transfer.'],
+  ['Can I pay cash on delivery?', 'Yes — Cash on Delivery is available on courier orders (2–3 days). Same-day inDrive orders are paid in advance by JazzCash, Easypaisa or bank transfer.'],
   ['Do you deliver outside Lahore?', `Not yet — ${DELIVERY.areaNote} You're also welcome to visit the nursery at ${BRAND.address}.`],
   ['Can I visit the nursery?', `Yes! We're at ${BRAND.address} (${BRAND.hours.toLowerCase()}). Call or WhatsApp ${BRAND.phone} before you come.`],
   ['How do I care for my new plant?', 'Each plant ships with a care card covering light, water and feeding. You can also browse our care guides any time for season-specific tips.'],
@@ -49,7 +49,7 @@ export default function Home() {
         <div className="banner main">
           <span className="eb">Fresh from our nursery</span>
           <h1>Bring your home to life with healthy plants</h1>
-          <p>Hand-grown at {BRAND.name}, carefully packed, and delivered across {BRAND.city} with Cash on Delivery.</p>
+          <p>Hand-grown at {BRAND.name}, carefully packed, and delivered across {BRAND.city} the same day.</p>
           <Link className="b" href="/shop">Shop plants <Raw html={ICONS.arrowR} /></Link>
           <div className="art"><PlantArt name="foliage" /></div>
         </div>
@@ -111,7 +111,7 @@ export default function Home() {
             </Link>
           ))}
         </div>
-        <p className="cities-note">…and every other area of Lahore. Cash on Delivery available everywhere in the city.</p>
+        <p className="cities-note">…and every other area of Lahore. Same-day inDrive delivery, or courier with Cash on Delivery.</p>
       </div></section>
 
       {/* care guides */}

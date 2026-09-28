@@ -5,7 +5,7 @@ import { getPayments } from '@/lib/server/payments';
 import { orderMessage, waLink } from '@/lib/whatsapp';
 import { getDelivery } from '@/lib/server/delivery';
 import { geocode, roadKm, inLahore } from '@/lib/server/geo';
-import { estimate, etaOf, courierCheck } from '@/lib/delivery';
+import { estimate, etaOf, courierCheck, codAllowed } from '@/lib/delivery';
 import { BRAND } from '@/lib/brand';
 
 // Work out the delivery charge on the server from the customer's choice (never trust a price from the browser).
@@ -57,6 +57,9 @@ export async function POST(req) {
   let delivery;
   try {
     delivery = await priceDelivery(body.delivery, body.items, c);
+    if (m.kind === 'cod' && !codAllowed((await getDelivery()).methods.find((x) => x.id === delivery.method))) {
+      throw new Error(`Cash on Delivery isn't available with ${delivery.name}. Please pay in advance by JazzCash, Easypaisa or bank transfer.`);
+    }
   } catch (e) {
     return NextResponse.json({ error: e.message }, { status: 400 });
   }

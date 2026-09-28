@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react';
 import Raw from '@/components/Raw';
 import { ICONS } from '@/lib/icons';
-import { estimate, rsRange, parseLatLng, etaOf, courierFee } from '@/lib/delivery';
+import { estimate, rsRange, parseLatLng, etaOf, courierFee, codAllowed } from '@/lib/delivery';
 
 const KIND_LABEL = { local: 'Local (fare estimate)', pickup: 'Pickup', courier: 'Courier (flat rate)' };
 
@@ -54,7 +54,7 @@ export default function DeliveryManager({ notify }) {
       <div className="pnl">
         <div className="ph"><h3>Delivery methods</h3></div>
         <div className="tbl-wrap"><table className="dtable">
-          <thead><tr><th>On</th><th>Name, description &amp; delivery time</th><th>Type</th><th>Rate per km</th><th>Minimum fare</th><th>Courier: first kg / extra kg / max</th><th>Plants?</th><th>Example ({preview} km)</th></tr></thead>
+          <thead><tr><th>On</th><th>Name, description &amp; delivery time</th><th>Type</th><th>Rate per km</th><th>Minimum fare</th><th>Courier: first kg / extra kg / max</th><th>Plants?</th><th>COD?</th><th>Example ({preview} km)</th></tr></thead>
           <tbody>
             {d.methods.map((m, i) => (
               <tr key={m.id} className={m.enabled ? '' : 'off'}>
@@ -70,6 +70,7 @@ export default function DeliveryManager({ notify }) {
                   <span className="rsin">max<input type="number" min="0" value={m.maxKg ?? 0} onChange={(e) => setM(i, 'maxKg', e.target.value)} />kg</span>
                 </div> : '—'}</td>
                 <td><button type="button" className={`sw${m.plants ? ' on' : ''}`} onClick={() => setM(i, 'plants', !m.plants)} title="Can this method carry live plants?"><span /></button></td>
+                <td><button type="button" className={`sw${codAllowed(m) ? ' on' : ''}`} onClick={() => setM(i, 'cod', !codAllowed(m))} title="Allow Cash on Delivery with this method?"><span /></button></td>
                 <td style={{ whiteSpace: 'nowrap' }}>{m.kind === 'local' ? rsRange(estimate({ ...m, min: +m.min, perKm: +m.perKm }, preview, +d.rangePct)) : m.kind === 'courier' ? `2 kg: Rs ${courierFee({ flat: +m.flat, perKg: +(m.perKg || 0) }, 2).toLocaleString()}` : 'Free'}</td>
               </tr>
             ))}
