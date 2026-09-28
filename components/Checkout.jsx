@@ -67,6 +67,7 @@ export default function Checkout({ payments, delivery }) {
   const method = payments.find((p) => p.id === pay);
   const needsTxn = method && method.accounts.length > 0 && method.kind !== 'cod' && method.kind !== 'card';
   const codOk = !dmethod || codAllowed(dmethod);
+  const payNames = payments.map((p) => p.name).join(', ').replace(/, ([^,]*)$/, ' or $1') || '—';
   const payOk = (p) => p.kind !== 'cod' || codOk;
   // inDrive orders must be paid in advance: move off COD when such a delivery method is chosen
   useEffect(() => {
@@ -112,7 +113,7 @@ export default function Checkout({ payments, delivery }) {
   }
 
   const Promo = () => (
-    <div className="cpromo"><b>Same-day delivery</b> in {BRAND.city} via inDrive · <b>Courier</b> 2–3 days with Cash on Delivery</div>
+    <div className="cpromo"><b>Same-day delivery</b> in {BRAND.city} via inDrive · <b>Courier</b> 2–3 days{payments.some((p) => p.kind === 'cod') ? ' with Cash on Delivery' : ''} · Pay by {payNames}</div>
   );
 
   if (done) {
@@ -264,7 +265,7 @@ export default function Checkout({ payments, delivery }) {
             {/* payment */}
             <div className="blk" style={{ marginTop: 18 }}>
               <h2><span className="b">3</span>Payment method</h2>
-              {!codOk && <p className="paynote">🔒 <b>{dmethod.name}</b> orders are <b>paid in advance</b> (products + delivery) by JazzCash, Easypaisa or bank transfer. Cash on Delivery is available with courier.</p>}
+              {!codOk && <p className="paynote">🔒 <b>{dmethod.name}</b> orders are <b>paid in advance</b> (products + delivery) by {payments.filter((p) => p.kind !== 'cod').map((p) => p.name).join(' or ')}. Cash on Delivery is available with courier.</p>}
               {payments.length === 0 && <p className="pay-none">Online ordering is not available right now. Please contact us on WhatsApp to place your order.</p>}
               <div className="pay">
                 {payments.map((p) => (

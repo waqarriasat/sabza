@@ -7,6 +7,7 @@ import { PAYMENT_KINDS, PK_BANKS, DEFAULT_PAYMENTS } from '@/lib/payments';
 const uid = () => Math.random().toString(36).slice(2, 10);
 const UP = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 15l-6-6-6 6"/></svg>';
 const DOWN = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>';
+const EYE_OFF = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19M1 1l22 22"/><path d="M14.12 14.12a3 3 0 1 1-4.24-4.24"/></svg>';
 const SWAP = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4L3 8l4 4M3 8h14M17 20l4-4-4-4M21 16H7"/></svg>';
 
 const EMPTY_METHOD = { id: '', kind: 'wallet', name: '', desc: '', badge: '', color: '#5DA13B', logo: '', enabled: true, instructions: '', accounts: [] };
@@ -131,14 +132,17 @@ export default function PaymentsManager({ initial, notify }) {
                 </div>
                 <span className="pm-logo" style={{ background: p.color }}>{p.logo}</span>
                 <div className="pm-name" onClick={() => toggleOpen(p.id)}>
-                  <b>{p.name}</b>{p.badge && <span className="badge b-green">{p.badge}</span>}
+                  <b>{p.name}</b>{p.enabled ? <span className="badge b-green">Visible at checkout</span> : <span className="badge b-grey">Hidden from checkout</span>}{p.badge && p.enabled && <span className="badge b-green">{p.badge}</span>}
                   <small>{kind.label} · {kind.needsAccount || p.accounts.length ? `${activeAcc} active of ${p.accounts.length} account${p.accounts.length === 1 ? '' : 's'}` : p.desc}</small>
                   {warn && <small className="warn">No active account — customers won't see where to pay.</small>}
                 </div>
-                <div className="pm-sw">
-                  <span>{p.enabled ? 'Shown' : 'Hidden'}</span>
-                  <Switch on={p.enabled} title={p.enabled ? 'Hide at checkout' : 'Show at checkout'}
-                    onClick={() => update(p.id, (x) => ({ ...x, enabled: !x.enabled }), `${p.name} ${p.enabled ? 'hidden' : 'shown'} at checkout`)} />
+                <div className="vis" role="group" aria-label={`${p.name} visibility at checkout`}>
+                  <button type="button" className={p.enabled ? 'on' : ''} disabled={p.enabled || saving}
+                    onClick={() => update(p.id, (x) => ({ ...x, enabled: true }), `${p.name} is now shown at checkout`)}>
+                    <Raw html={ICONS.eye} />Show</button>
+                  <button type="button" className={p.enabled ? '' : 'on off'} disabled={!p.enabled || saving}
+                    onClick={() => update(p.id, (x) => ({ ...x, enabled: false }), `${p.name} is now hidden from checkout`)}>
+                    <Raw html={EYE_OFF} />Hide</button>
                 </div>
                 <div className="act">
                   <button title="Accounts" onClick={() => toggleOpen(p.id)}><Raw html={isOpen ? UP : DOWN} /></button>

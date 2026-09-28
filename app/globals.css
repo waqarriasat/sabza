@@ -616,3 +616,13 @@ header{position:sticky;top:0;z-index:60;box-shadow:0 1px 0 var(--line)}
 .admin .dtable input.sub.eta{color:#A4501F;font-weight:600}
 .admin .cwrap{display:flex;flex-direction:column;gap:5px}
 .pg-checkout .paynote{background:#FFF4DE;border:1px solid #F5D9A8;color:#7A500C;border-radius:10px;padding:10px 12px;font-size:12.5px;margin:-4px 0 12px;line-height:1.5}
+/* payment show/hide buttons */
+.admin .vis{display:inline-flex;border:1px solid var(--line);border-radius:10px;overflow:hidden;flex:0 0 auto}
+.admin .vis button{display:inline-flex;align-items:center;gap:6px;border:none;background:#fff;padding:7px 12px;font-size:12.5px;font-weight:700;font-family:inherit;cursor:pointer;color:var(--muted)}
+.admin .vis button+button{border-left:1px solid var(--line)}
+.admin .vis button svg{width:15px;height:15px}
+.admin .vis button:hover:not(:disabled){background:#F4F6F0;color:var(--ink)}
+.admin .vis button.on{background:var(--green);color:#fff;cursor:default}
+.admin .vis button.on.off{background:#6B7264}
+.admin .vis button:disabled:not(.on){opacity:.6;cursor:default}
+.admin .pm-name .badge{margin-right:6px}
