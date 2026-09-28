@@ -8,12 +8,14 @@ import ProductCard, { SiteFooter } from '@/components/ProductCard';
 import WhatsAppButton from '@/components/WhatsAppButton';
 import { ICONS } from '@/lib/icons';
 import { PRODUCT, fmt } from '@/lib/data';
+import { BRAND, DELIVERY } from '@/lib/brand';
+import { addToCart } from '@/lib/cart';
 
 const TABS = ['Description', 'Care guide', 'Specifications', 'Reviews'];
 
 export default function ProductPage() {
   const P = PRODUCT;
-  const [cart, setCart] = useState(0);
+  const [added, setAdded] = useState(false);
   const [size, setSize] = useState(P.sizes[0].id);
   const [pot, setPot] = useState(P.pots[0].id);
   const [qty, setQty] = useState(1);
@@ -25,11 +27,15 @@ export default function ProductPage() {
   const was = sizeObj.was + potObj.add;
   const save = Math.round((1 - price / was) * 100);
 
-  const add = () => setCart((c) => c + qty);
+  const add = () => {
+    addToCart({ id: P.slug || 'monstera-deliciosa', n: P.name, v: `${sizeObj.label} · ${potObj.label}`, p: price, a: P.art }, qty);
+    setAdded(true);
+    setTimeout(() => setAdded(false), 1600);
+  };
 
   return (
     <div className="pg-product">
-      <StoreHeader active="Shop" cart={cart} />
+      <StoreHeader active="Shop" />
       <div className="wrap">
         <nav className="crumbs">
           <Link href="/">Home</Link><span className="s">›</span>
@@ -60,7 +66,7 @@ export default function ProductPage() {
             <div className="sci">{P.sci}</div>
             <div className="rrow">
               <span className="stars">★★★★★</span>
-              <span className="rt">{P.rating} · {P.reviews} reviews</span>
+              <a className="rt" href={BRAND.mapsUrl} target="_blank" rel="noopener">Nursery rated {BRAND.googleRating}★ on Google</a>
               <span className="stock"><i></i> In stock</span>
             </div>
             <div className="priceblk">
@@ -101,7 +107,7 @@ export default function ProductPage() {
                 <span>{qty}</span>
                 <button onClick={() => setQty((q) => q + 1)}>+</button>
               </div>
-              <button className="btn btn-add" onClick={add}><Raw html={ICONS.cart} />Add to cart</button>
+              <button className="btn btn-add" onClick={add}><Raw html={ICONS[added ? 'check' : 'cart']} />{added ? 'Added to cart' : 'Add to cart'}</button>
               <Link className="btn btn-buy" href="/checkout"><Raw html={ICONS.bag} />Buy now</Link>
             </div>
 
@@ -117,8 +123,8 @@ export default function ProductPage() {
 
             {/* delivery */}
             <div className="delv">
-              <div className="dl"><Raw html={ICONS.truck} /><div><b>Free delivery over Rs 3,000.</b> <span>Delivered in 2–4 working days, carefully packed.</span></div></div>
-              <div className="dl"><Raw html={ICONS.card} /><div><b>Cash on Delivery available.</b> <span>Plus JazzCash, Easypaisa, card &amp; bank transfer.</span></div></div>
+              <div className="dl"><Raw html={ICONS.truck} /><div><b>Free delivery over Rs {DELIVERY.freeOver.toLocaleString()}.</b> <span>Delivered across {BRAND.city} in {DELIVERY.days}, carefully packed.</span></div></div>
+              <div className="dl"><Raw html={ICONS.card} /><div><b>Cash on Delivery available.</b> <span>Plus JazzCash, Easypaisa &amp; bank transfer.</span></div></div>
               <div className="dl"><Raw html={ICONS.shield} /><div><b>7-day healthy-plant promise.</b> <span>Arrives unhappy? We'll replace or refund.</span></div></div>
             </div>
           </div>
@@ -153,31 +159,15 @@ export default function ProductPage() {
           </div>
         )}
         {tab === 'Reviews' && (
-          <div className="panel"><div className="rev">
-            <div className="rsum">
-              <div className="big">{P.rating}</div>
+          <div className="panel">
+            <div className="rsum" style={{ maxWidth: 420 }}>
+              <div className="big">{BRAND.googleRating}</div>
               <div className="stx">★★★★★</div>
-              <div className="cnt">Based on {P.reviews} reviews</div>
-              <div className="bars">
-                {[[5, 80], [4, 15], [3, 5], [2, 0], [1, 0]].map(([n, w]) => (
-                  <div className="bar" key={n}>{n}★<div className="track"><div className="fill" style={{ width: `${w}%` }}></div></div>{w}%</div>
-                ))}
-              </div>
+              <div className="cnt">{BRAND.name} on Google</div>
+              <p style={{ margin: '12px 0' }}>Read what real customers say about our plants and service, or leave your own review after your order arrives.</p>
+              <a className="writebtn" href={BRAND.mapsUrl} target="_blank" rel="noopener">Read our Google reviews</a>
             </div>
-            <div className="rlist">
-              {P.reviewsList.map((r, i) => (
-                <div className="rcard" key={i}>
-                  <div className="top">
-                    <div className="av">{r.av}</div>
-                    <div><div className="nm">{r.nm}</div><div className="dt">{r.meta}</div></div>
-                    <div className="stx">{'★'.repeat(r.st)}{'☆'.repeat(5 - r.st)}</div>
-                  </div>
-                  <p>{r.body}</p>
-                </div>
-              ))}
-              <button className="writebtn">Write a review</button>
-            </div>
-          </div></div>
+          </div>
         )}
       </div></div>
 
@@ -185,18 +175,18 @@ export default function ProductPage() {
       <section className="wrap" style={{ paddingBottom: 30 }}>
         <h2 className="sec-h2">You might also like</h2>
         <div className="prow">
-          {P.related.map((p, i) => <ProductCard key={i} p={p} onAdd={() => setCart((c) => c + 1)} />)}
+          {P.related.map((p, i) => <ProductCard key={i} p={p} />)}
         </div>
       </section>
 
       {/* mobile sticky buy bar */}
       <div className="sticky">
         <div className="sp">{fmt(price)}<small>{sizeObj.label} · {potObj.label}</small></div>
-        <button className="btn-add" onClick={add}><Raw html={ICONS.cart} />Add to cart</button>
+        <button className="btn-add" onClick={add}><Raw html={ICONS[added ? 'check' : 'cart']} />{added ? 'Added' : 'Add to cart'}</button>
       </div>
 
       <SiteFooter />
-      <WhatsAppButton />
+      <WhatsAppButton item={P.name} />
     </div>
   );
 }

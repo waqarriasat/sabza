@@ -3,6 +3,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import Raw from '@/components/Raw';
 import { ICONS } from '@/lib/icons';
+import Logo from '@/components/Logo';
 
 export default function LoginForm() {
   const [email, setEmail] = useState('');
@@ -29,7 +30,7 @@ export default function LoginForm() {
   return (
     <div className="admin-login">
       <form className="card" onSubmit={submit}>
-        <div className="logo q"><Raw className="m" html={ICONS.brand} /> Sabza</div>
+        <div className="brandrow"><Logo /></div>
         <h1 className="q">Admin login</h1>
         <p className="sub">Sign in to manage your store.</p>
         {err && <div className="err">{err}</div>}

@@ -9,7 +9,8 @@ import ProductCard from '@/components/ProductCard';
 import WhatsAppButton from '@/components/WhatsAppButton';
 import { ICONS } from '@/lib/icons';
 import { TILE_ICONS, TILE_BG } from '@/lib/plants';
-import { TILES, OFFERS, SECTIONS, CITIES } from '@/lib/data';
+import { TILES, OFFERS, SECTIONS, LAHORE_AREAS } from '@/lib/data';
+import { BRAND, DELIVERY } from '@/lib/brand';
 
 const GUIDES = [
   { icon: 'drop', bg: '#DEEAFB', color: '#3E84C4', t: 'Watering basics', p: 'How often to water indoor plants in our climate — without overdoing it.' },
@@ -17,10 +18,10 @@ const GUIDES = [
   { icon: 'leaf', bg: '#E4F1D6', color: '#4A8B2F', t: 'Repotting 101', p: 'When and how to repot, and the soil mix we recommend for each type.' },
 ];
 const STATS = [
-  { icon: 'users', num: '25,000+', lbl: 'Happy plant parents' },
-  { icon: 'leaf', num: '500+', lbl: 'Plant varieties' },
-  { icon: 'pin', num: '40+', lbl: 'Cities delivered' },
-  { icon: 'star', num: '4.8/5', lbl: 'Average rating' },
+  { icon: 'star', num: `${BRAND.googleRating}★`, lbl: 'Rating on Google' },
+  { icon: 'leaf', num: 'Own farm', lbl: 'Grown at our nursery' },
+  { icon: 'pin', num: 'Lahore', lbl: 'Delivery across the city' },
+  { icon: 'truck', num: DELIVERY.days, lbl: 'Typical delivery time' },
 ];
 const PILLS = [
   { icon: 'shield', t: '7-day healthy-plant promise' },
@@ -29,26 +30,26 @@ const PILLS = [
   { icon: 'check', t: 'Grown at our own nursery' },
 ];
 const FAQS = [
-  ['Do you deliver live plants safely?', 'Yes — every plant is packed in a secure box with the soil wrapped so it stays in place. Most orders arrive in 2–4 days, and we include a care card so your plant settles in happily.'],
+  ['Do you deliver live plants safely?', `Yes — every plant is packed in a secure box with the soil wrapped so it stays in place. Orders across Lahore usually arrive in ${DELIVERY.days}, and we include a care card so your plant settles in happily.`],
   ['What if my plant arrives damaged?', "Our 7-day healthy-plant promise has you covered. Just send a photo on WhatsApp within 7 days and we'll arrange a replacement or refund."],
-  ['Can I pay cash on delivery?', 'Absolutely. Cash on Delivery is available all over Pakistan, alongside JazzCash, Easypaisa, card and bank transfer.'],
+  ['Can I pay cash on delivery?', 'Absolutely. Cash on Delivery is available across Lahore, alongside JazzCash, Easypaisa and bank transfer.'],
+  ['Do you deliver outside Lahore?', `Not yet — ${DELIVERY.areaNote} You're also welcome to visit the nursery at ${BRAND.address}.`],
+  ['Can I visit the nursery?', `Yes! We're at ${BRAND.address} (${BRAND.hours.toLowerCase()}). Call or WhatsApp ${BRAND.phone} before you come.`],
   ['How do I care for my new plant?', 'Each plant ships with a care card covering light, water and feeding. You can also browse our care guides any time for season-specific tips.'],
 ];
 
 export default function Home() {
-  const [cart, setCart] = useState(0);
-  const add = () => setCart((c) => c + 1);
 
   return (
     <div className="pg-home">
-      <StoreHeader active="Home" cart={cart} />
+      <StoreHeader active="Home" />
 
       {/* hero */}
       <section className="hero"><div className="wrap"><div className="hero-grid">
         <div className="banner main">
           <span className="eb">Fresh from our nursery</span>
           <h1>Bring your home to life with healthy plants</h1>
-          <p>Hand-grown, carefully packed, and delivered across Pakistan with Cash on Delivery.</p>
+          <p>Hand-grown at {BRAND.name}, carefully packed, and delivered across {BRAND.city} with Cash on Delivery.</p>
           <Link className="b" href="/shop">Shop plants <Raw html={ICONS.arrowR} /></Link>
           <div className="art"><PlantArt name="foliage" /></div>
         </div>
@@ -93,24 +94,24 @@ export default function Home() {
             <Link href="/shop">{s.link} <Raw html={ICONS.arrowR} /></Link>
           </div>
           <div className="prow">
-            {s.items.map((p, j) => <ProductCard key={j} p={p} onAdd={add} />)}
+            {s.items.map((p, j) => <ProductCard key={j} p={p} />)}
           </div>
         </div></section>
       ))}
 
       {/* cities */}
       <section className="sec"><div className="wrap">
-        <div className="sec-h"><div><h2>Delivering across Pakistan</h2><p>Fast, careful delivery to your city</p></div></div>
+        <div className="sec-h"><div><h2>Delivering across Lahore</h2><p>Fresh from our farm in Shadab Colony to your door</p></div><a className="all" href={BRAND.mapsUrl} target="_blank" rel="noopener">Visit the nursery <Raw html={ICONS.arrowR} /></a></div>
         <div className="cities">
-          {CITIES.map((c) => (
+          {LAHORE_AREAS.map((c) => (
             <Link className="city" href="/shop" key={c}>
               <div className="cp"><Raw html={ICONS.pin} /></div>
-              <div><b>{c}</b><small>2–4 day delivery</small></div>
+              <div><b>{c}</b><small>{DELIVERY.days} delivery</small></div>
               <div className="chev"><Raw html={ICONS.chevR} /></div>
             </Link>
           ))}
         </div>
-        <p className="cities-note">…and 30+ more cities nationwide. Cash on Delivery available everywhere.</p>
+        <p className="cities-note">…and every other area of Lahore. Cash on Delivery available everywhere in the city.</p>
       </div></section>
 
       {/* care guides */}
@@ -128,7 +129,7 @@ export default function Home() {
 
       {/* why */}
       <section className="sec"><div className="wrap"><div className="why">
-        <h2>Why plant parents choose Sabza</h2>
+        <h2>Why Lahore chooses {BRAND.short}</h2>
         <div className="stats">
           {STATS.map((s, i) => (
             <div className="stat" key={i}><div className="si"><Raw html={ICONS[s.icon]} /></div><div className="num">{s.num}</div><div className="lbl">{s.lbl}</div></div>
@@ -137,7 +138,7 @@ export default function Home() {
         <div className="pills">
           {PILLS.map((p, i) => <span className="pill" key={i}><Raw html={ICONS[p.icon]} />{p.t}</span>)}
         </div>
-        <p className="fast">Grown with care in <b>Lahore</b> · Delivered nationwide</p>
+        <p className="fast">Grown with care at <b>{BRAND.name}</b>, {BRAND.city} · <a href={BRAND.mapsUrl} target="_blank" rel="noopener">See our Google reviews</a></p>
       </div></div></section>
 
       {/* faq */}

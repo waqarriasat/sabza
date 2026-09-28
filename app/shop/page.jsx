@@ -11,7 +11,6 @@ import { CATALOG, FILTER_CATS, FILTER_LIGHT, FILTER_CARE } from '@/lib/data';
 const PER = 8;
 
 export default function Shop() {
-  const [cart, setCart] = useState(0);
   const [cat, setCat] = useState(new Set());
   const [light, setLight] = useState(new Set());
   const [care, setCare] = useState(new Set());
@@ -76,7 +75,7 @@ export default function Shop() {
 
   return (
     <div className="pg-shop">
-      <StoreHeader active="Shop" cart={cart} />
+      <StoreHeader active="Shop" />
       <div className="wrap">
         <nav className="crumbs"><Link href="/">Home</Link><span className="s">›</span><span className="cur">Shop</span></nav>
         <h1 className="ptitle q">All Plants &amp; Supplies</h1>
@@ -125,7 +124,7 @@ export default function Shop() {
 
           <div>
             {slice.length > 0 ? (
-              <div className="grid">{slice.map((p, i) => <ProductCard key={i} p={p} onAdd={() => setCart((c) => c + 1)} />)}</div>
+              <div className="grid">{slice.map((p, i) => <ProductCard key={i} p={p} />)}</div>
             ) : (
               <div className="empty"><Raw html={ICONS.search} />No products match these filters. Try clearing a few.</div>
             )}

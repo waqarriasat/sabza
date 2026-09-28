@@ -5,7 +5,7 @@ import { getPayments } from '@/lib/server/payments';
 import { storageInfo } from '@/lib/server/store';
 
 export const dynamic = 'force-dynamic';
-export const metadata = { title: 'Admin — Sabza', robots: { index: false } };
+export const metadata = { title: 'Admin — Ahsan Ijaz Nursery', robots: { index: false } };
 
 export default async function AdminPage() {
   const admin = await currentAdmin();

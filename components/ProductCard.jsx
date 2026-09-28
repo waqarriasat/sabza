@@ -1,8 +1,12 @@
 'use client';
+import { useState } from 'react';
+import { addToCart } from '@/lib/cart';
 import Link from 'next/link';
 import Raw from './Raw';
 import PlantArt from './PlantArt';
 import { ICONS } from '@/lib/icons';
+import Logo from './Logo';
+import { BRAND } from '@/lib/brand';
 
 export function SiteFooter() {
   return (
@@ -11,21 +15,20 @@ export function SiteFooter() {
         <div className="foot">
           <div className="foot-about">
             <Link className="brand q" href="/">
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-                <Raw className="mark" html={ICONS.brandSoft} /> Sabza
-              </span>
+              <Logo light />
             </Link>
-            <p>A working nursery, online. Healthy plants delivered across Pakistan — with the care notes to keep them that way.</p>
+            <p>{BRAND.tagline}. A real family nursery in {BRAND.city} — healthy plants delivered across the city, with the care notes to keep them that way.</p>
+            <p className="addr">{BRAND.address}<br />{BRAND.phone} · {BRAND.hours}</p>
             <div className="pay">
               {['COD', 'JazzCash', 'Easypaisa', 'Visa', 'Mastercard'].map((p) => <span key={p}>{p}</span>)}
             </div>
           </div>
           <div><h5>Shop</h5><ul><li><Link href="/shop">Indoor plants</Link></li><li><Link href="/shop">Outdoor plants</Link></li><li><Link href="/shop">Pots &amp; planters</Link></li><li><Link href="/shop">Seeds</Link></li></ul></div>
           <div><h5>Help</h5><ul><li><a href="#">Track your order</a></li><li><a href="#">Care guides</a></li><li><a href="#">Delivery &amp; returns</a></li><li><a href="#">Contact us</a></li></ul></div>
-          <div><h5>Sabza</h5><ul><li><a href="#">Our nursery</a></li><li><a href="#">Bulk orders</a></li><li><a href="#">WhatsApp us</a></li></ul></div>
+          <div><h5>Our nursery</h5><ul><li><a href={BRAND.mapsUrl} target="_blank" rel="noopener">Visit us (Google Maps)</a></li><li><a href={BRAND.mapsUrl} target="_blank" rel="noopener">★ {BRAND.googleRating} on Google</a></li><li><a href="/go/whatsapp?src=footer" rel="nofollow">WhatsApp us</a></li><li><a href="/go/call?src=footer" rel="nofollow">Call {BRAND.phone}</a></li></ul></div>
         </div>
         <div className="foot-bot">
-          <span>© 2026 Sabza. Grown in Lahore.</span>
+          <span>© {new Date().getFullYear()} {BRAND.name}. Grown in {BRAND.city}.</span>
           <span>Privacy · Terms · Shipping policy</span>
         </div>
       </div>
@@ -34,11 +37,13 @@ export function SiteFooter() {
 }
 
 export function MiniFooter() {
-  return <footer className="mini-foot">© 2026 Sabza. Grown in Lahore.</footer>;
+  return <footer className="mini-foot">© {new Date().getFullYear()} {BRAND.name}. Grown in {BRAND.city}.</footer>;
 }
 
 // Shared product card (homepage carousels, shop grid, related rows)
 export default function ProductCard({ p, onAdd }) {
+  const [added, setAdded] = useState(false);
+  const add = () => { addToCart(p); onAdd?.(); setAdded(true); setTimeout(() => setAdded(false), 1400); };
   // accepts { n, c|cat, p (string|num), w (string|num), d (discount string), r, ct, a }
   const cat = p.c || (p.cat ? `${p.cat} Plants` : '');
   const price = typeof p.p === 'number' ? p.p.toLocaleString() : p.p;
@@ -52,7 +57,7 @@ export default function ProductCard({ p, onAdd }) {
           <button aria-label="Save"><Raw html={ICONS.heart} /></button>
           <button aria-label="Quick view"><Raw html={ICONS.eye} /></button>
         </div>
-        <button className="pcart" aria-label="Add to cart" onClick={onAdd}><Raw html={ICONS.plus} /></button>
+        <button className={`pcart${added ? ' ok' : ''}`} aria-label="Add to cart" title={added ? 'Added to cart' : 'Add to cart'} onClick={add}><Raw html={ICONS[added ? 'check' : 'plus']} /></button>
         <PlantArt name={p.a} />
       </div>
       <div className="pbody">
