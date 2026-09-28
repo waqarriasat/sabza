@@ -8,7 +8,7 @@ import { ICONS } from '@/lib/icons';
 import Logo from './Logo';
 import { BRAND } from '@/lib/brand';
 
-export function SiteFooter() {
+export function SiteFooter({ pay }) {
   return (
     <footer className="site-foot">
       <div className="wrap">
@@ -20,7 +20,7 @@ export function SiteFooter() {
             <p>{BRAND.tagline}. A real family nursery in {BRAND.city} — healthy plants delivered across the city, with the care notes to keep them that way.</p>
             <p className="addr">{BRAND.address}<br />{BRAND.phone} · {BRAND.hours}</p>
             <div className="pay">
-              {['COD', 'JazzCash', 'Easypaisa', 'Visa', 'Mastercard'].map((p) => <span key={p}>{p}</span>)}
+              {(pay?.names || []).map((p) => <span key={p}>{p === 'Cash on Delivery' ? 'COD' : p}</span>)}
             </div>
           </div>
           <div><h5>Shop</h5><ul><li><Link href="/shop">Indoor plants</Link></li><li><Link href="/shop">Outdoor plants</Link></li><li><Link href="/shop">Pots &amp; planters</Link></li><li><Link href="/shop">Seeds</Link></li></ul></div>

@@ -58,7 +58,8 @@ export async function POST(req) {
   try {
     delivery = await priceDelivery(body.delivery, body.items, c);
     if (m.kind === 'cod' && !codAllowed((await getDelivery()).methods.find((x) => x.id === delivery.method))) {
-      throw new Error(`Cash on Delivery isn't available with ${delivery.name}. Please pay in advance by JazzCash, Easypaisa or bank transfer.`);
+      const prepaid = methods.filter((x) => x.enabled && x.kind !== 'cod').map((x) => x.name).join(' / ') || 'online payment';
+      throw new Error(`Cash on Delivery isn't available with ${delivery.name}. Please pay in advance by ${prepaid}.`);
     }
   } catch (e) {
     return NextResponse.json({ error: e.message }, { status: 400 });

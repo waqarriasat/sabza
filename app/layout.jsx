@@ -4,7 +4,7 @@ import Attribution from '@/components/Attribution';
 export const metadata = {
   title: 'Ahsan Ijaz Nursery Farm — Plants delivered in Lahore',
   description:
-    'Ahsan Ijaz Nursery Farm, Shadab Colony Lahore. Healthy indoor & outdoor plants, pots, seeds and soil delivered across Lahore with Cash on Delivery. Rated 4.9★ on Google.',
+    'Ahsan Ijaz Nursery Farm, Shadab Colony Lahore. Healthy indoor & outdoor plants, pots, seeds and soil delivered across Lahore the same day, or by courier across Pakistan. Rated 4.9★ on Google.',
 };
 
 export const viewport = { themeColor: '#1E4D2B' };
