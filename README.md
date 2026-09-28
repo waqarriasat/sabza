@@ -29,7 +29,8 @@ npm start
 | `/shop`           | Catalog with **working filters** (category, price, light, care, pet-safe), sort, chips, pagination, mobile filter drawer |
 | `/product/[slug]` | Product detail — size/pot variants with live price, quantity, tabs, reviews, related, mobile sticky buy-bar |
 | `/checkout`       | Cart + checkout — editable cart, free-delivery threshold (Rs 3,000), **Cash-on-Delivery-first** payments, order confirmation |
-| `/admin`          | Admin panel — dashboard (stats, sales chart, low-stock, recent orders), Orders table, Products table, add-product modal |
+| `/admin`          | Admin panel (login required) — dashboard, Orders, Products, **Payment methods**, **Settings** (change login email/password) |
+| `/admin/login`    | Admin sign-in |
 
 ## Project structure
 
@@ -79,3 +80,27 @@ down to the existing client components for interactivity (filters, cart, etc.).
 - SVG markup is injected through the small `<Raw/>` helper so the exact markup
   stays portable; swap for `<Image/>` / inline JSX whenever you like.
 - All five screens started as standalone HTML mockups; this is the Next.js port.
+
+## Admin login & payment methods
+
+- Sign in at **`/admin/login`**. The initial login is the owner's email with the
+  password they were given; change it any time from **Admin → Settings**
+  (changing it signs out every other device).
+- **Admin → Payment methods** controls what customers see at checkout:
+  Cash on Delivery, JazzCash, Easypaisa, bank transfer (all major Pakistani banks),
+  Raast, SadaPay, NayaPay, UPaisa, cards, or any custom method. Each method can be
+  shown/hidden, edited, reordered or removed, and can hold several accounts that can
+  be added, edited, replaced, hidden or removed.
+
+### Where the settings are saved
+
+| Hosting | What to do |
+|---|---|
+| **Vercel** | Vercel's disk is not permanent, so connect a free Redis database: Vercel dashboard → your project → **Storage** → **Upstash for Redis** → *Connect*. This adds `KV_REST_API_URL` and `KV_REST_API_TOKEN`; redeploy. Until it's connected, admin changes can be lost on redeploy (the admin panel shows a warning). |
+| **VPS / own server** | Nothing needed. Settings are saved to `data/store.json` (override the folder with `DATA_DIR`). Back that file up. The Redis option also works here if you prefer. |
+
+Optional: set `AUTH_SECRET` (any long random string) to sign login sessions. Without it a
+new key is generated on every build, which just means everyone is signed out after each deploy.
+
+**Forgot the admin password?** Delete the `sabza:admin` key in Redis (or the `admin`
+entry in `data/store.json`) — the login resets to the original credentials.
