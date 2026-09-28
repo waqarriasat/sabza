@@ -7,7 +7,7 @@ import Logo from '@/components/Logo';
 import { ICONS } from '@/lib/icons';
 import { fmt } from '@/lib/data';
 import { BRAND } from '@/lib/brand';
-import { estimate, rsRange } from '@/lib/delivery';
+import { estimate, rsRange, etaOf, courierCheck } from '@/lib/delivery';
 import { useCart, setQty, removeFromCart, clearCart, keyOf } from '@/lib/cart';
 
 const EMPTY_FORM = { name: '', phone: '', email: '', area: '', address: '', notes: '' };
@@ -30,9 +30,11 @@ export default function Checkout({ payments, delivery }) {
 
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
   const dmethod = delivery.methods.find((m) => m.id === dm);
-  const dmBlocked = dmethod && !dmethod.plants && hasPlants;
+  const blockReason = (m) => (m.kind === 'courier' ? (courierCheck(m, items).ok ? '' : courierCheck(m, items).reason) : !m.plants && hasPlants ? 'Not available for live plants' : '');
+  const cour = dmethod?.kind === 'courier' ? courierCheck(dmethod, items) : null;
+  const dmBlocked = dmethod && Boolean(blockReason(dmethod));
   const est = dmethod?.kind === 'local' && loc ? estimate(dmethod, loc.km, delivery.rangePct) : null;
-  const ship = !dmethod ? null : dmethod.kind === 'pickup' ? 0 : dmethod.kind === 'courier' ? dmethod.flat : est ? est.low : null;
+  const ship = !dmethod ? null : dmethod.kind === 'pickup' ? 0 : dmethod.kind === 'courier' ? (cour?.ok ? cour.fee : null) : est ? est.low : null;
   const total = subtotal + (ship || 0);
   const deliveryReady = dmethod && !dmBlocked && (dmethod.kind !== 'local' || loc) && (dmethod.kind !== 'courier' || city.trim());
 
@@ -71,7 +73,7 @@ export default function Checkout({ payments, delivery }) {
   async function placeOrder() {
     setErr('');
     if (!deliveryReady) {
-      setErr(dmBlocked ? 'This delivery method cannot carry live plants — please choose another.' : dmethod?.kind === 'courier' ? 'Please enter your city for courier delivery.' : 'Please set your delivery location so we can calculate the delivery charge.');
+      setErr(dmBlocked ? `${blockReason(dmethod)}.` : dmethod?.kind === 'courier' ? 'Please enter your city for courier delivery.' : 'Please set your delivery location so we can calculate the delivery charge.');
       document.getElementById('delivery')?.scrollIntoView({ behavior: 'smooth' });
       return;
     }
@@ -103,7 +105,7 @@ export default function Checkout({ payments, delivery }) {
   }
 
   const Promo = () => (
-    <div className="cpromo"><b>Cash on Delivery</b> across {BRAND.city} · Delivery charged by distance · Courier to all Pakistan for seeds, pots &amp; fertilizer</div>
+    <div className="cpromo"><b>Same-day delivery</b> in {BRAND.city} via inDrive · <b>Courier</b> 2–3 days · Cash on Delivery</div>
   );
 
   if (done) {
@@ -115,7 +117,8 @@ export default function Checkout({ payments, delivery }) {
           <div className="ck"><Raw html={ICONS.check} /></div>
           <h2 className="q">Order received! 🌱</h2>
           <p>Thank you. Your order number is <span className="oid">{done.id}</span>.<br />
-            Products {fmt(done.subtotal)} + delivery {done.shipping?.kind === 'pickup' ? '(pickup)' : fmt(done.delivery)} = <b>{fmt(done.total)}</b> · {done.method}</p>
+            Products {fmt(done.subtotal)} + delivery {done.shipping?.kind === 'pickup' ? '(pickup)' : fmt(done.delivery)} = <b>{fmt(done.total)}</b> · {done.method}
+            {done.shipping?.eta && <><br />{done.shipping.name}: <b>{done.shipping.eta}</b></>}</p>
           <p style={{ marginTop: 10 }}>Tap below to send your order to us on WhatsApp so we can confirm it quickly.</p>
           <a className="wa-send" href={done.whatsapp} target="_blank" rel="noopener"><Raw html={ICONS.whatsapp} />Send order on WhatsApp</a>
           <p className="small">Or call us on <a href={`tel:${BRAND.phoneIntl}`}>{BRAND.phone}</a> and quote {done.id}.</p>
@@ -203,14 +206,16 @@ export default function Checkout({ payments, delivery }) {
               <p className="dnote">Delivery is charged <b>separately</b> from the product price, by road distance from our nursery.</p>
               <div className="pay">
                 {delivery.methods.map((m) => {
-                  const blocked = !m.plants && hasPlants;
+                  const blocked = blockReason(m);
+                  const cc = m.kind === 'courier' ? courierCheck(m, items) : null;
                   const e = m.kind === 'local' && loc ? estimate(m, loc.km, delivery.rangePct) : null;
                   return (
                     <label key={m.id} className={`pm${dm === m.id ? ' on' : ''}${blocked ? ' dis' : ''}`} onClick={() => !blocked && setDm(m.id)}>
                       <span className="radio"></span>
                       <span className="ic" style={{ background: m.kind === 'courier' ? '#1F4E8C' : m.kind === 'pickup' ? '#C8693A' : '#1E4D2B' }}><Raw html={ICONS[m.kind === 'pickup' ? 'pin' : 'truck']} /></span>
-                      <span><b>{m.name}</b><small>{blocked ? 'Not available — your cart has live plants' : m.desc}</small></span>
-                      <span className="rec">{m.kind === 'pickup' ? 'No charge' : m.kind === 'courier' ? fmt(m.flat) : e ? rsRange(e) : `Rs ${m.perKm}/km · min ${fmt(m.min)}`}</span>
+                      <span><b>{m.name}</b><small>{blocked ? `Not available — ${blocked}` : m.desc}</small>
+                        {!blocked && etaOf(m) && <span className={`eta ${m.kind}`}>{m.kind === 'local' ? '⚡ ' : '🕒 '}{etaOf(m)}</span>}</span>
+                      <span className="rec">{m.kind === 'pickup' ? 'No charge' : m.kind === 'courier' ? (cc.ok ? `${fmt(cc.fee)} · ${cc.kg} kg` : `${fmt(m.flat)} first kg`) : e ? rsRange(e) : `Rs ${m.perKm}/km · min ${fmt(m.min)}`}</span>
                     </label>
                   );
                 })}
@@ -245,7 +250,7 @@ export default function Checkout({ payments, delivery }) {
                 <div className="locbox"><b>Pick up from:</b> {BRAND.address}<br /><small>{BRAND.hours} · <a href={BRAND.mapsUrl} target="_blank" rel="noopener">Directions ↗</a> · We'll call you when your order is ready.</small></div>
               )}
               {dmethod?.kind === 'courier' && (
-                <div className="locbox"><small>Courier rate {fmt(dmethod.flat)} anywhere in Pakistan. Usually 2–5 working days. Enter your city in the delivery details above.</small></div>
+                <div className="locbox"><small>Courier anywhere in Pakistan: {fmt(dmethod.flat)} for the first kg + {fmt(dmethod.perKg)} per extra kg{cour?.ok ? ` — your order is ${cour.kg} kg = ${fmt(cour.fee)}` : ''}. Delivered in {etaOf(dmethod)}. Small plants are packed with their soil secured. Enter your city in the delivery details above.</small></div>
               )}
             </div>
 
@@ -299,14 +304,14 @@ export default function Checkout({ payments, delivery }) {
             <div className="line tot"><span>Total</span><span>{fmt(total)}</span></div>
             <div className="ship-note">{dmethod?.kind === 'local'
               ? (loc ? `Delivery ${loc.km} km × Rs ${dmethod.perKm}/km (min ${fmt(dmethod.min)}). Pay the delivery charge with your order.` : 'Set your delivery location to see the delivery charge.')
-              : dmethod?.kind === 'courier' ? 'Courier charge is a flat rate.' : 'Collect from the nursery — no delivery charge.'}</div>
+              : dmethod?.kind === 'courier' ? `Courier charged by weight${cour?.ok ? ` (${cour.kg} kg)` : ''}.` : 'Collect from the nursery — no delivery charge.'}</div>
             {err && <div className="err" role="alert">{err}</div>}
             <button className="place" disabled={!method || busy || !items.length} onClick={placeOrder}>
               <Raw html={ICONS.check} />{busy ? 'Placing order…' : 'Place order'}
             </button>
             <div className="trust">
               <div><Raw html={ICONS.star} />Rated {BRAND.googleRating}★ on Google</div>
-              <div><Raw html={ICONS.truck} />Carefully packed · bike, rickshaw or loader</div>
+              <div><Raw html={ICONS.truck} />{dmethod ? `${dmethod.name}: ${etaOf(dmethod)}` : 'Same-day delivery in Lahore'}</div>
               <div><Raw html={ICONS.check} />No account needed to order</div>
             </div>
           </div>

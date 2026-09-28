@@ -610,3 +610,8 @@ header{position:sticky;top:0;z-index:60;box-shadow:0 1px 0 var(--line)}
 .admin .setup{margin-top:12px;font-size:12.5px;color:#55584e}
 .admin .setup summary{cursor:pointer;font-weight:600;color:var(--green-dark)}
 .admin .setup ol{margin:8px 0 0 18px;display:flex;flex-direction:column;gap:6px;white-space:pre-line;line-height:1.5}
+.pg-checkout .pm .eta{display:inline-block;margin-top:4px;font-size:11.5px;font-weight:700;padding:2px 8px;border-radius:6px}
+.pg-checkout .pm .eta.local{background:#FDEBD9;color:#A4501F}
+.pg-checkout .pm .eta.courier,.pg-checkout .pm .eta.pickup{background:#E8EEF6;color:#2C4E7A}
+.admin .dtable input.sub.eta{color:#A4501F;font-weight:600}
+.admin .cwrap{display:flex;flex-direction:column;gap:5px}

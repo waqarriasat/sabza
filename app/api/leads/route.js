@@ -5,7 +5,7 @@ import { getPayments } from '@/lib/server/payments';
 import { orderMessage, waLink } from '@/lib/whatsapp';
 import { getDelivery } from '@/lib/server/delivery';
 import { geocode, roadKm, inLahore } from '@/lib/server/geo';
-import { estimate } from '@/lib/delivery';
+import { estimate, etaOf, courierCheck } from '@/lib/delivery';
 import { BRAND } from '@/lib/brand';
 
 // Work out the delivery charge on the server from the customer's choice (never trust a price from the browser).
@@ -13,12 +13,14 @@ async function priceDelivery(choice = {}, items, customer) {
   const settings = await getDelivery();
   const m = settings.methods.find((x) => x.id === choice.method && x.enabled);
   if (!m) throw new Error('Please choose a delivery method.');
-  if (!m.plants && items.some((it) => it.plant !== false)) throw new Error(`${m.name} can't carry live plants. Please choose another delivery method or remove the plants.`);
-  if (m.kind === 'pickup') return { method: m.id, name: m.name, kind: m.kind, fee: 0, km: null, city: BRAND.city };
+  if (m.kind !== 'courier' && !m.plants && items.some((it) => it.plant !== false)) throw new Error(`${m.name} can't carry live plants. Please choose another delivery method.`);
+  if (m.kind === 'pickup') return { method: m.id, name: m.name, kind: m.kind, eta: etaOf(m), fee: 0, km: null, city: BRAND.city };
   if (m.kind === 'courier') {
     const city = String(choice.city || '').trim();
     if (!city) throw new Error('Please enter your city for courier delivery.');
-    return { method: m.id, name: m.name, kind: m.kind, fee: m.flat, km: null, city };
+    const chk = courierCheck(m, items.map((it) => ({ ...it, q: Math.max(1, parseInt(it.q, 10) || 1) })));
+    if (!chk.ok) throw new Error(chk.reason);
+    return { method: m.id, name: m.name, kind: m.kind, eta: etaOf(m), fee: chk.fee, kg: chk.kg, km: null, city };
   }
   let km = null, how = '';
   const pt = Number.isFinite(choice.lat) && Number.isFinite(choice.lng) ? { lat: choice.lat, lng: choice.lng } : null;
@@ -32,7 +34,7 @@ async function priceDelivery(choice = {}, items, customer) {
     if (g && inLahore(g)) ({ km, how } = await roadKm(settings.origin, g));
   }
   if (km == null) throw new Error('We could not work out your distance. Tap “Use my current location” or pick your area.');
-  return { method: m.id, name: m.name, kind: m.kind, fee: estimate(m, km).low, km, how, perKm: m.perKm, city: BRAND.city };
+  return { method: m.id, name: m.name, kind: m.kind, eta: etaOf(m), fee: estimate(m, km).low, km, how, perKm: m.perKm, city: BRAND.city };
 }
 
 // Checkout "Place order": save the order as a lead, return its reference + WhatsApp link.

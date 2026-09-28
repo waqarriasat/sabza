@@ -136,7 +136,12 @@ Customers pay the **product price** and a **separate delivery charge**:
   Rs 250/km min Rs 2,500). The distance comes from the customer's phone location or address
   (OpenStreetMap by default; set `GOOGLE_MAPS_API_KEY` to use Google Maps instead), or from the
   area list as a fallback. The server recalculates the charge — the browser can't change it.
-- **Pickup** from the nursery (no charge) and **courier to all Pakistan** (flat rate, non-plant items only).
+- **inDrive (bike / rickshaw / loader)** — same day, within a couple of hours, Lahore only.
+- **Courier** — all Pakistan, 2–3 days, charged **by weight** (default Rs 300 first kg + Rs 150 per
+  extra kg, max 10 kg). Only for **small plants** and non-plant items (seeds, pots, soil,
+  fertilizer). Each product has a weight and a courier yes/no flag (`w`, `courier`); if missing
+  they're estimated (plants over ~Rs 1,000, palms and trees are not sent by courier).
+- **Pickup** from the nursery (no charge).
 - **Admin → Delivery**: edit methods and rates, set the nursery's exact location (paste a Google
   Maps link), edit the area list. Enter the **actual rider fare** on each order and the page shows
   whether the estimates are too high or too low.

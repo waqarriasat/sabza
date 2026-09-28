@@ -21,7 +21,7 @@ const STATS = [
   { icon: 'star', num: `${BRAND.googleRating}★`, lbl: 'Rating on Google' },
   { icon: 'leaf', num: 'Own farm', lbl: 'Grown at our nursery' },
   { icon: 'pin', num: 'Lahore', lbl: 'Delivery across the city' },
-  { icon: 'truck', num: DELIVERY.days, lbl: 'Typical delivery time' },
+  { icon: 'truck', num: DELIVERY.days, lbl: 'inDrive delivery in Lahore' },
 ];
 const PILLS = [
   { icon: 'shield', t: '7-day healthy-plant promise' },
@@ -30,7 +30,7 @@ const PILLS = [
   { icon: 'check', t: 'Grown at our own nursery' },
 ];
 const FAQS = [
-  ['Do you deliver live plants safely?', `Yes — every plant is packed in a secure box with the soil wrapped so it stays in place. Orders across Lahore usually arrive in ${DELIVERY.days}, and we include a care card so your plant settles in happily.`],
+  ['Do you deliver live plants safely?', `Yes — every plant is packed in a secure box with the soil wrapped so it stays in place. In Lahore we deliver ${DELIVERY.fast}, or ${DELIVERY.courier}. We include a care card so your plant settles in happily.`],
   ['What if my plant arrives damaged?', "Our 7-day healthy-plant promise has you covered. Just send a photo on WhatsApp within 7 days and we'll arrange a replacement or refund."],
   ['Can I pay cash on delivery?', 'Absolutely. Cash on Delivery is available across Lahore, alongside JazzCash, Easypaisa and bank transfer.'],
   ['Do you deliver outside Lahore?', `Not yet — ${DELIVERY.areaNote} You're also welcome to visit the nursery at ${BRAND.address}.`],
@@ -106,7 +106,7 @@ export default function Home() {
           {LAHORE_AREAS.map((c) => (
             <Link className="city" href="/shop" key={c}>
               <div className="cp"><Raw html={ICONS.pin} /></div>
-              <div><b>{c}</b><small>{DELIVERY.days} delivery</small></div>
+              <div><b>{c}</b><small>Same-day delivery</small></div>
               <div className="chev"><Raw html={ICONS.chevR} /></div>
             </Link>
           ))}

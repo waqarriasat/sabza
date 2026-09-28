@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react';
 import Raw from '@/components/Raw';
 import { ICONS } from '@/lib/icons';
-import { estimate, rsRange, parseLatLng } from '@/lib/delivery';
+import { estimate, rsRange, parseLatLng, etaOf, courierFee } from '@/lib/delivery';
 
 const KIND_LABEL = { local: 'Local (fare estimate)', pickup: 'Pickup', courier: 'Courier (flat rate)' };
 
@@ -54,18 +54,23 @@ export default function DeliveryManager({ notify }) {
       <div className="pnl">
         <div className="ph"><h3>Delivery methods</h3></div>
         <div className="tbl-wrap"><table className="dtable">
-          <thead><tr><th>On</th><th>Name &amp; description</th><th>Type</th><th>Rate per km</th><th>Minimum fare</th><th>Courier rate</th><th>Live plants?</th><th>Example ({preview} km)</th></tr></thead>
+          <thead><tr><th>On</th><th>Name, description &amp; delivery time</th><th>Type</th><th>Rate per km</th><th>Minimum fare</th><th>Courier: first kg / extra kg / max</th><th>Plants?</th><th>Example ({preview} km)</th></tr></thead>
           <tbody>
             {d.methods.map((m, i) => (
               <tr key={m.id} className={m.enabled ? '' : 'off'}>
                 <td><button type="button" className={`sw${m.enabled ? ' on' : ''}`} onClick={() => setM(i, 'enabled', !m.enabled)}><span /></button></td>
-                <td style={{ minWidth: 220 }}><input value={m.name} onChange={(e) => setM(i, 'name', e.target.value)} /><input className="sub" value={m.desc} onChange={(e) => setM(i, 'desc', e.target.value)} /></td>
+                <td style={{ minWidth: 220 }}><input value={m.name} onChange={(e) => setM(i, 'name', e.target.value)} /><input className="sub" value={m.desc} onChange={(e) => setM(i, 'desc', e.target.value)} />
+                  <input className="sub eta" value={m.eta ?? etaOf(m)} placeholder="Delivery time, e.g. Same day" onChange={(e) => setM(i, 'eta', e.target.value)} title="Delivery time shown to customers" /></td>
                 <td><small className="sm">{KIND_LABEL[m.kind]}</small></td>
                 <td>{m.kind === 'local' ? <span className="rsin">Rs<input type="number" min="0" value={m.perKm} onChange={(e) => setM(i, 'perKm', e.target.value)} />/km</span> : '—'}</td>
                 <td>{m.kind === 'local' ? <span className="rsin">Rs<input type="number" min="0" value={m.min} onChange={(e) => setM(i, 'min', e.target.value)} /></span> : '—'}</td>
-                <td>{m.kind === 'courier' ? <span className="rsin">Rs<input type="number" min="0" value={m.flat} onChange={(e) => setM(i, 'flat', e.target.value)} /></span> : '—'}</td>
+                <td>{m.kind === 'courier' ? <div className="cwrap">
+                  <span className="rsin">Rs<input type="number" min="0" value={m.flat} onChange={(e) => setM(i, 'flat', e.target.value)} />1st kg</span>
+                  <span className="rsin">+Rs<input type="number" min="0" value={m.perKg ?? 0} onChange={(e) => setM(i, 'perKg', e.target.value)} />/kg</span>
+                  <span className="rsin">max<input type="number" min="0" value={m.maxKg ?? 0} onChange={(e) => setM(i, 'maxKg', e.target.value)} />kg</span>
+                </div> : '—'}</td>
                 <td><button type="button" className={`sw${m.plants ? ' on' : ''}`} onClick={() => setM(i, 'plants', !m.plants)} title="Can this method carry live plants?"><span /></button></td>
-                <td style={{ whiteSpace: 'nowrap' }}>{m.kind === 'local' ? rsRange(estimate({ ...m, min: +m.min, perKm: +m.perKm }, preview, +d.rangePct)) : m.kind === 'courier' ? `Rs ${(+m.flat).toLocaleString()}` : 'Free'}</td>
+                <td style={{ whiteSpace: 'nowrap' }}>{m.kind === 'local' ? rsRange(estimate({ ...m, min: +m.min, perKm: +m.perKm }, preview, +d.rangePct)) : m.kind === 'courier' ? `2 kg: Rs ${courierFee({ flat: +m.flat, perKg: +(m.perKg || 0) }, 2).toLocaleString()}` : 'Free'}</td>
               </tr>
             ))}
           </tbody>

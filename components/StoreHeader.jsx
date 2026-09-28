@@ -22,7 +22,7 @@ export default function StoreHeader({ active = 'Home', hotline = true }) {
         <div className="wrap">
           <span>🌱 <b>Free plant-care card</b> with every order</span>
           <span className="sep x">•</span>
-          <span className="x"><b>Cash on Delivery</b> across Lahore</span>
+          <span className="x"><b>Same-day delivery</b> in Lahore</span>
           <span className="sep">•</span>
           <span><b>Courier</b> to all Pakistan for seeds &amp; pots</span>
         </div>
