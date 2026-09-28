@@ -28,7 +28,7 @@ export default function ProductPage() {
   const save = Math.round((1 - price / was) * 100);
 
   const add = () => {
-    addToCart({ id: P.slug || 'monstera-deliciosa', n: P.name, v: `${sizeObj.label} · ${potObj.label}`, p: price, a: P.art }, qty);
+    addToCart({ id: P.slug || 'monstera-deliciosa', n: P.name, v: `${sizeObj.label} · ${potObj.label}`, p: price, a: P.art, plant: true }, qty);
     setAdded(true);
     setTimeout(() => setAdded(false), 1600);
   };
@@ -123,7 +123,7 @@ export default function ProductPage() {
 
             {/* delivery */}
             <div className="delv">
-              <div className="dl"><Raw html={ICONS.truck} /><div><b>Free delivery over Rs {DELIVERY.freeOver.toLocaleString()}.</b> <span>Delivered across {BRAND.city} in {DELIVERY.days}, carefully packed.</span></div></div>
+              <div className="dl"><Raw html={ICONS.truck} /><div><b>Delivered across {BRAND.city}</b> <span>by bike, rickshaw or loader — charged by distance, carefully packed.</span></div></div>
               <div className="dl"><Raw html={ICONS.card} /><div><b>Cash on Delivery available.</b> <span>Plus JazzCash, Easypaisa &amp; bank transfer.</span></div></div>
               <div className="dl"><Raw html={ICONS.shield} /><div><b>7-day healthy-plant promise.</b> <span>Arrives unhappy? We'll replace or refund.</span></div></div>
             </div>

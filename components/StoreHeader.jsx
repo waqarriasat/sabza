@@ -3,7 +3,7 @@ import Link from 'next/link';
 import Raw from './Raw';
 import { ICONS } from '@/lib/icons';
 import Logo from './Logo';
-import { BRAND, DELIVERY } from '@/lib/brand';
+import { BRAND } from '@/lib/brand';
 import { useCart } from '@/lib/cart';
 
 const NAV = [
@@ -24,7 +24,7 @@ export default function StoreHeader({ active = 'Home', hotline = true }) {
           <span className="sep x">•</span>
           <span className="x"><b>Cash on Delivery</b> across Lahore</span>
           <span className="sep">•</span>
-          <span>Free delivery over <b>Rs {DELIVERY.freeOver.toLocaleString()}</b></span>
+          <span><b>Courier</b> to all Pakistan for seeds &amp; pots</span>
         </div>
       </div>
 

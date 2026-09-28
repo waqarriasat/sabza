@@ -134,7 +134,7 @@ export default function LeadsManager({ notify }) {
                   <td><span className={`badge ${TYPE[l.type]?.cls}`}>{TYPE[l.type]?.label || l.type}</span></td>
                   <td>{l.customer.name ? <><b>{l.customer.name}</b><small className="sm">{l.customer.phone}{l.customer.area ? ` · ${l.customer.area}` : ''}</small></> : <small className="sm">{l.note || '—'}</small>}</td>
                   <td><small className="sm">{l.source?.label || 'direct'}</small></td>
-                  <td>{l.total ? rs(l.total) : '—'}</td>
+                  <td>{l.total ? <>{rs(l.subtotal)}{l.shipping && <small className="sm">+ {l.shipping.kind === 'pickup' ? 'pickup' : `${rs(l.delivery)} ${l.shipping.name.toLowerCase()}`}</small>}</> : '—'}</td>
                   <td>
                     <select className={`stsel ${ST_CLS[l.status]}`} value={l.status} onChange={(e) => patch(l.id, { status: e.target.value }, `${l.id} → ${e.target.value}`)}>
                       {LEAD_STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
@@ -174,11 +174,26 @@ export default function LeadsManager({ notify }) {
               {open.note && <><span>Info</span><b>{open.note}</b></>}
               {(open.source?.referrer || open.source?.utm_campaign || open.source?.landing) && <><span>Came from</span><b>{[open.source.referrer, open.source.utm_medium, open.source.utm_campaign, open.source.landing].filter(Boolean).join(' · ')}</b></>}
             </div>
+            {open.shipping && (
+              <div className="shipbox">
+                <div><b>{open.shipping.name}</b>
+                  <small className="sm">{open.shipping.kind === 'local' ? `${open.shipping.km} km${open.shipping.how === 'area' ? ' (by area)' : open.shipping.how === 'approx' ? ' (approx.)' : ' by road'} × Rs ${open.shipping.perKm}/km` : open.shipping.kind === 'courier' ? `Courier to ${open.customer.city}` : 'Customer collects from nursery'}
+                    {open.customer.lat != null && <> · <a href={`https://www.google.com/maps?q=${open.customer.lat},${open.customer.lng}`} target="_blank" rel="noopener">customer location ↗</a></>}</small></div>
+                {open.shipping.kind !== 'pickup' && (
+                  <div className="shipin">
+                    <label>Delivery charged<input type="number" min="0" key={`c${open.delivery}`} defaultValue={open.delivery}
+                      onBlur={(e) => { if (e.target.value !== '' && +e.target.value !== open.delivery) patch(open.id, { deliveryFee: e.target.value }, 'Delivery charge updated'); }} /></label>
+                    <label>Actual rider fare<input type="number" min="0" key={`a${open.shipping.actual}`} defaultValue={open.shipping.actual ?? ''} placeholder="after booking"
+                      onBlur={(e) => { if (String(e.target.value) !== String(open.shipping.actual ?? '')) patch(open.id, { deliveryActual: e.target.value }, 'Actual fare saved'); }} /></label>
+                  </div>
+                )}
+              </div>
+            )}
             {open.items.length > 0 && (
               <table className="mini">
                 <tbody>
                   {open.items.map((it, i) => <tr key={i}><td>{it.n}{it.v ? <small className="sm">{it.v}</small> : null}</td><td>×{it.q}</td><td style={{ textAlign: 'right' }}>{rs(it.p * it.q)}</td></tr>)}
-                  <tr><td>Delivery</td><td></td><td style={{ textAlign: 'right' }}>{open.delivery ? rs(open.delivery) : 'FREE'}</td></tr>
+                  <tr><td>Delivery</td><td></td><td style={{ textAlign: 'right' }}>{open.shipping?.kind === 'pickup' ? 'Pickup' : rs(open.delivery)}</td></tr>
                   <tr><td><b>Total</b></td><td></td><td style={{ textAlign: 'right' }}><b>{rs(open.total)}</b></td></tr>
                 </tbody>
               </table>
@@ -187,7 +202,7 @@ export default function LeadsManager({ notify }) {
             <ul className="hist">
               {open.history.map((h, i) => (
                 <li key={i}><small>{pkTime(h.at)} · {h.by}</small>
-                  {h.action === 'created' ? 'Lead created' : h.action === 'note' ? `Note: ${h.to}` : `${h.action}: ${h.from ?? '—'} → ${h.to ?? '—'}`}</li>
+                  {h.action === 'created' ? 'Lead created' : h.action === 'note' ? `Note: ${h.to}` : h.action === 'alert' ? `Alert ${h.to}` : `${h.action}: ${h.from ?? '—'} → ${h.to ?? '—'}`}</li>
               ))}
             </ul>
             <div className="mrow"><div className="field"><label>Add a note</label><input value={note} onChange={(e) => setNote(e.target.value)} placeholder="e.g. Customer confirmed on call, delivering Friday" /></div></div>

@@ -1,5 +1,6 @@
-import { NextResponse } from 'next/server';
-import { createLead, readSource, tooMany, clientIp, isBot } from '@/lib/server/leads';
+import { NextResponse, after } from 'next/server';
+import { createLead, readSource, tooMany, clientIp, isBot, logAlerts } from '@/lib/server/leads';
+import { sendAlert } from '@/lib/server/notify';
 import { BRAND } from '@/lib/brand';
 import { waLink } from '@/lib/whatsapp';
 
@@ -21,6 +22,7 @@ export async function GET(req, { params }) {
         note: [q.get('src') && `button: ${q.get('src')}`, item && `item: ${item}`].filter(Boolean).join(' · '),
       });
       ref = lead.id;
+      after(async () => { try { await logAlerts(lead.id, await sendAlert(lead)); } catch {} });
     } catch {
       // never block the customer from reaching us because tracking failed
     }

@@ -13,9 +13,9 @@ export async function GET() {
 export async function PATCH(req) {
   const admin = await currentAdmin();
   if (!admin) return deny();
-  const { id, status, saleAmount, note } = await req.json().catch(() => ({}));
+  const { id, status, saleAmount, note, deliveryFee, deliveryActual } = await req.json().catch(() => ({}));
   try {
-    return NextResponse.json({ lead: await updateLead(id, { status, saleAmount, note }, admin.email) });
+    return NextResponse.json({ lead: await updateLead(id, { status, saleAmount, note, deliveryFee, deliveryActual }, admin.email) });
   } catch (e) {
     return NextResponse.json({ error: e.message }, { status: 400 });
   }

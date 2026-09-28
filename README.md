@@ -126,3 +126,30 @@ Every enquiry from the website is saved as a lead with a reference number (`AIN-
 turns into a sale (enter the sale amount for WhatsApp/call leads). Leads can't be deleted and
 every change is kept in the lead's history. Set the agreed commission % there; the page shows
 the month's sales value and commission, and **Export CSV** produces the monthly statement.
+
+## Delivery
+
+Customers pay the **product price** and a **separate delivery charge**:
+
+- **Bike / rickshaw / loader (Lahore):** road distance from the nursery × rate per km, with a
+  minimum fare (defaults: bike Rs 100/km min Rs 700, rickshaw Rs 140/km min Rs 1,000, loader
+  Rs 250/km min Rs 2,500). The distance comes from the customer's phone location or address
+  (OpenStreetMap by default; set `GOOGLE_MAPS_API_KEY` to use Google Maps instead), or from the
+  area list as a fallback. The server recalculates the charge — the browser can't change it.
+- **Pickup** from the nursery (no charge) and **courier to all Pakistan** (flat rate, non-plant items only).
+- **Admin → Delivery**: edit methods and rates, set the nursery's exact location (paste a Google
+  Maps link), edit the area list. Enter the **actual rider fare** on each order and the page shows
+  whether the estimates are too high or too low.
+
+## Order alerts
+
+**Admin → Order alerts** — the nursery can switch on any of:
+
+| Channel | Cost | Vercel environment variables |
+|---|---|---|
+| Telegram | Free | `TELEGRAM_BOT_TOKEN` |
+| Email (Resend) | Free tier | `RESEND_API_KEY`, optional `ALERT_FROM_EMAIL` |
+| WhatsApp (Meta Cloud API) | ~Rs 3–4 per alert | `WHATSAPP_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID` + approved template `new_order_alert` |
+
+Step-by-step setup for each is shown on that page, with a **Send test** button. Alert results are
+saved in each order's history.
